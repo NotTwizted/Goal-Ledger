@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarCheck, ChevronLeft, GraduationCap, Target } from 'lucide-react';
-import { supabase } from './supabase';
+import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
@@ -46,6 +46,11 @@ export default function StudyTracker() {
   const route = useRoute();
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setAuthLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -96,7 +101,9 @@ export default function StudyTracker() {
           setSubjects(Array.isArray(data.subjects) ? data.subjects : []);
         } else {
           // Migrate the old browser-only data once if this device still has it.
-          const oldSaved = localStorage.getItem('studyTrackerSubjects');
+          // 'study-tracker:subjects' is the key the pre-Supabase app wrote to.
+          const oldSaved = localStorage.getItem('study-tracker:subjects')
+            || localStorage.getItem('studyTrackerSubjects');
           const oldSubjects = oldSaved ? JSON.parse(oldSaved) : [];
           const initialSubjects = Array.isArray(oldSubjects) ? oldSubjects : [];
           setSubjects(initialSubjects);
@@ -250,6 +257,32 @@ export default function StudyTracker() {
     return (
       <div className="w-full max-w-3xl mx-auto min-h-screen bg-stone-50 flex items-center justify-center p-8">
         <div className="text-stone-500 font-serif">Loading Goal Ledger…</div>
+      </div>
+    );
+  }
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="w-full max-w-3xl mx-auto min-h-screen bg-stone-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <GraduationCap size={24} className="text-stone-800" />
+            <h1 className="font-serif text-2xl text-stone-900">Goal Ledger</h1>
+          </div>
+          <p className="text-sm text-stone-600 mb-3">
+            This build has no Supabase credentials, so it can't sign you in or load your ledger.
+          </p>
+          <p className="text-sm text-stone-600 mb-2">
+            Set these two environment variables where the site is built, then redeploy:
+          </p>
+          <ul className="text-xs font-mono text-stone-700 bg-stone-100 rounded p-3 mb-3 space-y-1">
+            <li>VITE_SUPABASE_URL</li>
+            <li>VITE_SUPABASE_PUBLISHABLE_KEY</li>
+          </ul>
+          <p className="text-xs text-stone-500">
+            They're in your local <span className="font-mono">.env.local</span>, which is deliberately kept out of the repository.
+          </p>
+        </div>
       </div>
     );
   }
