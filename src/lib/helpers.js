@@ -135,20 +135,21 @@ export function scoreFromMarks(marksLost, marksTotal) {
   return Math.max(0, Math.min(100, Math.round(((total - lost) / total) * 100)));
 }
 
-export function mostRecentMonday(date) {
+// The reporting week runs Friday to Friday.
+export function mostRecentFriday(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); // 0=Sun ... 1=Mon ... 6=Sat
-  const diff = (day - 1 + 7) % 7;
+  const day = d.getDay(); // 0=Sun ... 5=Fri ... 6=Sat
+  const diff = (day - 5 + 7) % 7;
   d.setDate(d.getDate() - diff);
   return d;
 }
 
 export function getWeekRange(weekOffset) {
-  const start = mostRecentMonday(new Date());
+  const start = mostRecentFriday(new Date());
   start.setDate(start.getDate() + weekOffset * 7);
   const end = new Date(start);
-  end.setDate(end.getDate() + 5); // Friday, exclusive (Mon–Fri)
+  end.setDate(end.getDate() + 7); // the next Friday, exclusive — exactly seven days
   return { start, end };
 }
 
