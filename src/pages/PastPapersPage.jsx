@@ -43,7 +43,7 @@ export default function PastPapersPage({ subject, paper }) {
               key={pp.id}
               data-tappable
               onClick={() => navigate(paths.pastPaper(subject.id, paper, pp.id))}
-              className="cursor-pointer flex items-center gap-3 p-3 bg-white border border-stone-300 rounded-lg hover:border-stone-500 transition-colors"
+              className="cursor-pointer flex items-center gap-3 p-3 bg-white border border-stone-300 rounded-lg transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-stone-900 truncate">{pastPaperLabel(pp)}</p>

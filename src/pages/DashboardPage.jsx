@@ -99,7 +99,7 @@ export default function DashboardPage({ category }) {
                 key={opt.key}
                 onClick={() => setSortOrder(opt.key)}
                 className={`px-2.5 py-1 rounded border text-xs transition-colors ${
-                  sortOrder === opt.key ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 hover:border-stone-500'
+                  sortOrder === opt.key ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 '
                 }`}
               >
                 {opt.label}
@@ -110,7 +110,7 @@ export default function DashboardPage({ category }) {
 
         <button
           onClick={() => setShowAdd(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 text-stone-50 rounded text-sm font-medium hover:bg-stone-700"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 text-stone-50 rounded text-sm font-medium"
         >
           <Plus size={16} /> {isStudyCategory ? 'Subject' : 'Goal'}
         </button>
@@ -201,7 +201,7 @@ export default function DashboardPage({ category }) {
                           className={`px-2.5 py-1 rounded border text-xs transition-colors ${
                             components.includes(comp)
                               ? 'bg-stone-800 text-white border-stone-800'
-                              : 'text-stone-600 border-stone-300 hover:border-stone-500'
+                              : 'text-stone-600 border-stone-300 '
                           }`}
                         >
                           {comp}
@@ -240,11 +240,11 @@ export default function DashboardPage({ category }) {
                   (isStudyCategory && !(board === OTHER ? boardCustom.trim() : board)) ||
                   (mathsNeedsComponent && components.length === 0)
                 }
-                className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm hover:bg-stone-700 disabled:bg-stone-300 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm disabled:bg-stone-300 disabled:cursor-not-allowed"
               >
                 Add goal
               </button>
-              <button onClick={resetForm} className="px-3 py-1.5 text-stone-600 text-sm hover:bg-stone-100 rounded">Cancel</button>
+              <button onClick={resetForm} className="px-3 py-1.5 text-stone-600 text-sm rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function DashboardPage({ category }) {
               key={s.id}
               data-tappable
               onClick={() => navigate(paths.subject(s.id))}
-              className={`group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer hover:border-stone-500 transition-colors ${
+              className={`group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer transition-colors ${
                 isStudy ? 'border-l-indigo-800' : 'border-l-amber-600'
               }`}
             >

@@ -33,7 +33,7 @@ export default function MilestoneRow({ subject, topic }) {
             key={m.value}
             onClick={() => updateSubjects(mutate.setTopicMastery(subjects, subject.id, topic.id, m.value))}
             className={`px-2 py-0.5 rounded border text-[10px] font-mono tracking-wider transition-colors ${
-              topic.mastery === m.value ? `${m.color} bg-opacity-10` : 'text-stone-300 border-stone-200 hover:border-stone-400'
+              topic.mastery === m.value ? `${m.color} bg-opacity-10` : 'text-stone-300 border-stone-200 '
             }`}
           >
             {m.stamp}

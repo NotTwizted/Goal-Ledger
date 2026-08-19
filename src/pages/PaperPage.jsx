@@ -47,7 +47,7 @@ export default function PaperPage({ subject, paper }) {
       <div className="mb-6 flex items-center gap-2">
         <button
           onClick={() => navigate(paths.pastPapers(subject.id, paper))}
-          className="flex-1 flex items-center justify-between p-3 bg-white border border-stone-300 rounded-lg hover:border-stone-500 transition-colors"
+          className="flex-1 flex items-center justify-between p-3 bg-white border border-stone-300 rounded-lg transition-colors"
         >
           <span className="text-sm text-stone-700">
             Past papers {pastPapers.length > 0 && <span className="text-stone-400">· {pastPapers.length} uploaded</span>}
@@ -57,7 +57,7 @@ export default function PaperPage({ subject, paper }) {
         <label
           data-tappable
           title="Upload a marked past paper"
-          className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 cursor-pointer border border-stone-300 rounded-lg px-3 py-3 hover:border-stone-500"
+          className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer border border-stone-300 rounded-lg px-3 py-3"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
           <input

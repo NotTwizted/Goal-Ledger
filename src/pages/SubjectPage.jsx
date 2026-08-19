@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronRight, ClipboardList, FileText, Image as ImageIcon, Loader2, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, ChevronRight, ClipboardList, FileText, Image as ImageIcon, Loader2, Plus } from 'lucide-react';
 import {
   computeProgress,
   daysUntil,
@@ -24,6 +24,17 @@ export default function SubjectPage({ subject }) {
   const [importPaper, setImportPaper] = useState('Paper 1');
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState('');
+  const [justLoadedTopics, setJustLoadedTopics] = useState(false);
+  const flashTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+
+  const loadStandardTopics = () => {
+    updateSubjects(mutate.applySeedChecklist(subjects, subject.id, seed));
+    setJustLoadedTopics(true);
+    clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setJustLoadedTopics(false), 1800);
+  };
 
   const progress = computeProgress(subject.topics);
   const code = isStudy ? getPaperCode(subject.level, subject.name, subject.board) : null;
@@ -82,7 +93,7 @@ export default function SubjectPage({ subject }) {
               href={specUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1.5 inline-flex items-center gap-1 text-stone-600 hover:text-stone-900 underline text-xs"
+              className="ml-1.5 inline-flex items-center gap-1 text-stone-600 underline text-xs"
             >
               <FileText size={12} /> View specification
             </a>
@@ -117,10 +128,14 @@ export default function SubjectPage({ subject }) {
       {seed && (
         <div className="mb-5">
           <button
-            onClick={() => updateSubjects(mutate.applySeedChecklist(subjects, subject.id, seed))}
-            className="w-full flex items-center justify-center gap-2 py-2 border-2 border-indigo-800 rounded-lg text-sm font-medium text-indigo-800 hover:bg-indigo-800 hover:text-white transition-colors"
+            onClick={loadStandardTopics}
+            className={`w-full flex items-center justify-center gap-2 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+              justLoadedTopics ? 'border-emerald-700 text-emerald-700 is-confirmed' : 'border-indigo-800 text-indigo-800'
+            }`}
           >
-            <ClipboardList size={16} /> Load standard topics
+            {justLoadedTopics
+              ? <><CheckCircle2 size={16} /> Topics loaded</>
+              : <><ClipboardList size={16} /> Load standard topics</>}
           </button>
           <p className="text-[11px] text-stone-400 mt-1.5 text-center">
             Restores every standard topic and subtopic in syllabus order — anything you deleted comes back in its original place, and the progress you have already recorded is kept.
@@ -139,7 +154,7 @@ export default function SubjectPage({ subject }) {
           />
           <button
             onClick={addMilestone}
-            className="px-3 py-2 bg-stone-800 text-white rounded text-sm hover:bg-stone-700 flex items-center gap-1"
+            className="px-3 py-2 bg-stone-800 text-white rounded text-sm flex items-center gap-1"
           >
             <Plus size={16} /> Add
           </button>
@@ -155,7 +170,7 @@ export default function SubjectPage({ subject }) {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <button
           onClick={() => setShowImport(v => !v)}
-          className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800"
+          className="flex items-center gap-1.5 text-xs text-stone-500"
         >
           <ClipboardList size={14} /> {showImport ? 'Hide import' : 'Paste a list instead'}
         </button>
@@ -163,7 +178,7 @@ export default function SubjectPage({ subject }) {
           { accept: 'image/*', Icon: ImageIcon, label: isStudy ? 'Upload a photo of the specification' : 'Upload a photo of the topics' },
           { accept: 'application/pdf', Icon: FileText, label: isStudy ? 'Upload a PDF of the specification' : 'Upload a PDF of the topics' },
         ].map(({ accept, Icon, label }) => (
-          <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 cursor-pointer">
+          <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer">
             {fileLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
             {fileLoading ? 'Reading file…' : label}
             <input
@@ -198,7 +213,7 @@ export default function SubjectPage({ subject }) {
                   type="button"
                   onClick={() => setImportPaper(p)}
                   className={`px-2.5 py-1 rounded border text-xs transition-colors ${
-                    importPaper === p ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 hover:border-stone-500'
+                    importPaper === p ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 '
                   }`}
                 >
                   {p}
@@ -224,11 +239,11 @@ export default function SubjectPage({ subject }) {
             <div className="flex gap-2">
               <button
                 onClick={() => { setShowImport(false); setImportText(''); }}
-                className="px-3 py-1.5 text-stone-600 text-sm hover:bg-stone-100 rounded"
+                className="px-3 py-1.5 text-stone-600 text-sm rounded"
               >
                 Cancel
               </button>
-              <button onClick={runImport} className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm hover:bg-stone-700">
+              <button onClick={runImport} className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm">
                 Add to checklist
               </button>
             </div>
@@ -250,7 +265,7 @@ export default function SubjectPage({ subject }) {
               <button
                 key={p}
                 onClick={() => navigate(paths.paper(subject.id, p))}
-                className="text-left bg-white border-2 border-stone-300 rounded-xl p-4 hover:border-stone-500 transition-colors"
+                className="text-left bg-white border-2 border-stone-300 rounded-xl p-4 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="font-serif text-base text-stone-800">{p}</h3>

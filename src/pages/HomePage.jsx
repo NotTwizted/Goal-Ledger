@@ -30,7 +30,7 @@ export default function HomePage() {
             <div key={key} className={`flex flex-col bg-white border-2 rounded-xl overflow-hidden ${accentBorder}`}>
               <button
                 onClick={() => navigate(paths.category(key))}
-                className="text-left p-4 pb-3 hover:bg-stone-50 transition-colors"
+                className="text-left p-4 pb-3 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Icon size={20} className={`${accentText} shrink-0`} />
@@ -50,7 +50,7 @@ export default function HomePage() {
                         <button
                           key={s.id}
                           onClick={() => navigate(paths.subject(s.id))}
-                          className="flex items-center gap-2 py-1.5 text-left hover:bg-stone-50 rounded px-1 -mx-1"
+                          className="flex items-center gap-2 py-1.5 text-left rounded px-1 -mx-1"
                         >
                           <span className="text-xs text-stone-700 flex-1 truncate">{s.name}{mathsComponentTag(s)}</span>
                           {code && (
@@ -65,7 +65,7 @@ export default function HomePage() {
                     {remaining > 0 && (
                       <button
                         onClick={() => navigate(paths.category(key))}
-                        className="text-[10px] text-stone-400 hover:text-stone-700 text-left py-1 px-1 -mx-1"
+                        className="text-[10px] text-stone-400 text-left py-1 px-1 -mx-1"
                       >
                         +{remaining} more
                       </button>
@@ -81,7 +81,7 @@ export default function HomePage() {
       {notifPermission === 'default' && (
         <button
           onClick={requestNotificationPermission}
-          className="w-full flex items-center justify-center gap-2 py-2 mb-4 border border-stone-300 rounded-lg text-xs text-stone-600 hover:border-stone-500 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-2 mb-4 border border-stone-300 rounded-lg text-xs text-stone-600 transition-colors"
         >
           <Bell size={14} /> Enable deadline reminders
         </button>
@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setWeekOffset(o => o - 1)}
-            className="p-1.5 rounded hover:bg-stone-200 text-stone-600"
+            className="p-1.5 rounded text-stone-600"
           >
             <ChevronLeft size={18} />
           </button>
@@ -112,7 +112,7 @@ export default function HomePage() {
           <button
             onClick={() => setWeekOffset(o => o + 1)}
             disabled={weekOffset >= 0}
-            className="p-1.5 rounded hover:bg-stone-200 text-stone-600 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="p-1.5 rounded text-stone-600 disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ChevronRight size={18} />
           </button>
@@ -128,7 +128,7 @@ export default function HomePage() {
               <button
                 key={s.id}
                 onClick={() => navigate(paths.report(s.id))}
-                className={`text-left p-4 bg-white border-l-4 border border-stone-300 rounded-lg hover:border-stone-500 transition-colors ${
+                className={`text-left p-4 bg-white border-l-4 border border-stone-300 rounded-lg transition-colors ${
                   s.category === 'study' ? 'border-l-indigo-800' : 'border-l-amber-600'
                 }`}
               >

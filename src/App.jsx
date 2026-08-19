@@ -18,7 +18,7 @@ function NotFound({ message }) {
       <p className="text-stone-400 font-serif text-sm mb-3">{message}</p>
       <button
         onClick={() => navigate(paths.home())}
-        className="px-3 py-1.5 border border-stone-300 rounded text-sm text-stone-600 hover:border-stone-500"
+        className="px-3 py-1.5 border border-stone-300 rounded text-sm text-stone-600"
       >
         Back to the ledger
       </button>
@@ -345,7 +345,7 @@ export default function StudyTracker() {
             {authError && <p className="text-xs text-rose-600">{authError}</p>}
             {authMessage && <p className="text-xs text-emerald-700">{authMessage}</p>}
 
-            <button type="submit" className="px-3 py-2.5 bg-stone-800 text-white rounded text-sm font-medium hover:bg-stone-700">
+            <button type="submit" className="px-3 py-2.5 bg-stone-800 text-white rounded text-sm font-medium">
               {authMode === 'sign-in' ? 'Sign in' : 'Create account'}
             </button>
           </form>
@@ -357,7 +357,7 @@ export default function StudyTracker() {
               setAuthError('');
               setAuthMessage('');
             }}
-            className="w-full mt-3 px-3 py-2 text-sm text-stone-600 hover:bg-stone-100 rounded"
+            className="w-full mt-3 px-3 py-2 text-sm text-stone-600 rounded"
           >
             {authMode === 'sign-in' ? 'Create a new account' : 'Already have an account? Sign in'}
           </button>
@@ -449,7 +449,7 @@ export default function StudyTracker() {
             {header.back && (
               <button
                 onClick={() => navigate(header.back)}
-                className="mr-2 p-1.5 rounded hover:bg-stone-200 text-stone-700"
+                className="mr-2 p-1.5 rounded text-stone-700"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -457,7 +457,7 @@ export default function StudyTracker() {
             <button
               onClick={() => navigate(paths.home())}
               title="Back to the weekly report"
-              className="flex items-center gap-2 rounded px-1.5 py-1 -mx-1.5 hover:bg-stone-200"
+              className="flex items-center gap-2 rounded px-1.5 py-1 -mx-1.5"
             >
               {header.icon}
               <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
@@ -465,7 +465,7 @@ export default function StudyTracker() {
           </div>
           <button
             onClick={() => supabase.auth.signOut()}
-            className="px-2.5 py-1.5 text-xs text-stone-500 border border-stone-300 rounded hover:border-stone-500 hover:text-stone-800"
+            className="px-2.5 py-1.5 text-xs text-stone-500 border border-stone-300 rounded"
           >
             Sign out
           </button>
