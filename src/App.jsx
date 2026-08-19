@@ -255,7 +255,7 @@ export default function StudyTracker() {
 
   if (authLoading) {
     return (
-      <div className="w-full max-w-3xl mx-auto min-h-screen bg-stone-50 flex items-center justify-center p-8">
+      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-8">
         <div className="text-stone-500 font-serif">Loading Goal Ledger…</div>
       </div>
     );
@@ -263,7 +263,7 @@ export default function StudyTracker() {
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="w-full max-w-3xl mx-auto min-h-screen bg-stone-50 flex items-center justify-center p-6">
+      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <GraduationCap size={24} className="text-stone-800" />
@@ -289,7 +289,7 @@ export default function StudyTracker() {
 
   if (!user) {
     return (
-      <div className="w-full max-w-3xl mx-auto min-h-screen bg-stone-50 flex items-center justify-center p-6">
+      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <GraduationCap size={24} className="text-stone-800" />
@@ -340,7 +340,7 @@ export default function StudyTracker() {
   }
 
   if (!loaded) {
-    return <div className="w-full max-w-3xl mx-auto p-8 text-stone-500 font-serif">Loading your subjects…</div>;
+    return <div className="w-full p-8 text-stone-500 font-serif">Loading your subjects…</div>;
   }
 
   const routeSubject = route.subjectId ? subjects.find(s => s.id === route.subjectId) : null;
@@ -416,7 +416,7 @@ export default function StudyTracker() {
 
   return (
     <LedgerContext.Provider value={ledger}>
-      <div className="w-full max-w-3xl mx-auto bg-stone-50 min-h-screen">
+      <div className="w-full bg-stone-50 min-h-screen">
         <div className="border-b-2 border-stone-800 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {header.back && (

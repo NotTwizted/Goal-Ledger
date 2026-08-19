@@ -18,7 +18,7 @@ export default function HomePage() {
 
   return (
     <div className="p-6">
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         {CATEGORIES.map(({ key, label, Icon, accent, empty }) => {
           const items = subjects.filter(s => s.category === key);
           const preview = items.slice(0, PREVIEW_LIMIT);
