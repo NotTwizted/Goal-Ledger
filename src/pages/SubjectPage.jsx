@@ -14,7 +14,7 @@ import { navigate, paths } from '../lib/router';
 import MilestoneRow from '../components/MilestoneRow';
 
 export default function SubjectPage({ subject }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const isStudy = subject.category === 'study';
   const seed = isStudy ? getSeedData(subject) : null;
 
@@ -125,7 +125,7 @@ export default function SubjectPage({ subject }) {
         </div>
       </div>
 
-      {seed && (
+      {editing && seed && (
         <div className="mb-5">
           <button
             onClick={loadStandardTopics}
@@ -143,7 +143,7 @@ export default function SubjectPage({ subject }) {
         </div>
       )}
 
-      {!isStudy && (
+      {editing && !isStudy && (
         <div className="flex gap-2 mb-2">
           <input
             value={milestoneName}
@@ -161,12 +161,13 @@ export default function SubjectPage({ subject }) {
         </div>
       )}
 
-      {isStudy && (
+      {editing && isStudy && (
         <p className="text-xs text-stone-400 mb-2">
           Paste a list or upload the specification below to build the checklist — add subtopics directly inside each topic's card.
         </p>
       )}
 
+      {editing && (
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <button
           onClick={() => setShowImport(v => !v)}
@@ -195,9 +196,10 @@ export default function SubjectPage({ subject }) {
           </label>
         ))}
       </div>
+      )}
       {fileError && <p className="text-xs text-rose-600 -mt-3 mb-4">{fileError}</p>}
 
-      {showImport && (
+      {editing && showImport && (
         <div className="mb-5 p-4 border-2 border-dashed border-stone-400 rounded-lg bg-white">
           <p className="text-xs text-stone-500 mb-2">
             {isStudy
@@ -253,7 +255,9 @@ export default function SubjectPage({ subject }) {
 
       {subject.topics.length === 0 && (
         <div className="text-center py-12 text-stone-400 font-serif text-sm">
-          {isStudy ? 'No topics yet. Add the first one above.' : 'No milestones yet. Add the first one above.'}
+          {editing
+            ? (isStudy ? 'No topics yet. Add the first one above.' : 'No milestones yet. Add the first one above.')
+            : `Nothing here yet — press Edit to add ${isStudy ? 'topics' : 'milestones'}.`}
         </div>
       )}
 

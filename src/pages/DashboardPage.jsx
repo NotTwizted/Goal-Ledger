@@ -19,7 +19,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function DashboardPage({ category }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const isStudyCategory = category === 'study';
 
   const [showAdd, setShowAdd] = useState(false);
@@ -108,15 +108,17 @@ export default function DashboardPage({ category }) {
           </div>
         ) : <span />}
 
-        <button
-          onClick={() => setShowAdd(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 text-stone-50 rounded text-sm font-medium"
-        >
-          <Plus size={16} /> {isStudyCategory ? 'Subject' : 'Goal'}
-        </button>
+        {editing && (
+          <button
+            onClick={() => setShowAdd(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 text-stone-50 rounded text-sm font-medium"
+          >
+            <Plus size={16} /> {isStudyCategory ? 'Subject' : 'Goal'}
+          </button>
+        )}
       </div>
 
-      {showAdd && (
+      {editing && showAdd && (
         <div className="mb-6 p-4 border-2 border-dashed border-stone-400 rounded-lg bg-white">
           <div className="flex flex-col gap-2">
             {!isStudyCategory && (
@@ -250,12 +252,14 @@ export default function DashboardPage({ category }) {
         </div>
       )}
 
-      {sortedSubjects.length === 0 && !showAdd && (
+      {sortedSubjects.length === 0 && !(editing && showAdd) && (
         <div className="text-center py-16 text-stone-400 font-serif">
           <BookOpen size={32} className="mx-auto mb-3 opacity-50" />
-          {isStudyCategory
-            ? 'No subjects yet. Add one to start tracking your progress.'
-            : 'No goals yet. Add one to start tracking your progress.'}
+          {editing
+            ? (isStudyCategory
+              ? 'No subjects yet. Add one to start tracking your progress.'
+              : 'No goals yet. Add one to start tracking your progress.')
+            : `Nothing here yet — press Edit to add ${isStudyCategory ? 'a subject' : 'a goal'}.`}
         </div>
       )}
 
@@ -275,12 +279,14 @@ export default function DashboardPage({ category }) {
                 isStudy ? 'border-l-indigo-800' : 'border-l-amber-600'
               }`}
             >
-              <button
-                onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deleteSubject(subjects, s.id)); }}
-                className="absolute top-3 right-3 p-1 text-stone-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 size={16} />
-              </button>
+              {editing && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deleteSubject(subjects, s.id)); }}
+                  className="absolute top-3 right-3 p-1 text-stone-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
               <div className="flex items-baseline gap-2 pr-6">
                 {isStudy
                   ? <GraduationCap size={14} className="text-indigo-800 shrink-0" />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, ChevronLeft, GraduationCap, Target } from 'lucide-react';
+import { CalendarCheck, Check, ChevronLeft, GraduationCap, Lock, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
@@ -39,6 +39,7 @@ export default function StudyTracker() {
   const [loaded, setLoaded] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [editing, setEditing] = useState(false);
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
@@ -248,8 +249,8 @@ export default function StudyTracker() {
   }, [persist]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, notifPermission, requestNotificationPermission }),
-    [subjects, updateSubjects, weekOffset, notifPermission, requestNotificationPermission]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, requestNotificationPermission }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission, requestNotificationPermission]
   );
 
   const handleAuthSubmit = async (e) => {
@@ -463,12 +464,25 @@ export default function StudyTracker() {
               <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
             </button>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing(v => !v)}
+            title={editing ? 'Lock the ledger' : 'Unlock to add, import, or delete'}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border ${
+              editing
+                ? 'bg-stone-800 text-white border-stone-800'
+                : 'text-stone-500 border-stone-300'
+            }`}
+          >
+            {editing ? <><Check size={13} /> Done</> : <><Lock size={13} /> Edit</>}
+          </button>
           <button
             onClick={() => supabase.auth.signOut()}
             className="px-2.5 py-1.5 text-xs text-stone-500 border border-stone-300 rounded"
           >
             Sign out
           </button>
+          </div>
         </div>
 
         {saveError && (

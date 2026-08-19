@@ -8,7 +8,7 @@ import { navigate, paths } from '../lib/router';
 import TopicCard from '../components/TopicCard';
 
 export default function PaperPage({ subject, paper }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,6 +54,7 @@ export default function PaperPage({ subject, paper }) {
           </span>
           <ChevronRight size={16} className="text-stone-400" />
         </button>
+        {editing && (
         <label
           data-tappable
           title="Upload a marked past paper"
@@ -72,6 +73,7 @@ export default function PaperPage({ subject, paper }) {
             }}
           />
         </label>
+        )}
       </div>
       {error && <p className="text-xs text-rose-600 -mt-4 mb-4">{error}</p>}
 

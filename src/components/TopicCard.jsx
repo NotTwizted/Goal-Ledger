@@ -7,7 +7,7 @@ import { extractUnitTest } from '../lib/uploads';
 import ScoreField from './ScoreField';
 
 export default function TopicCard({ subject, topic }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const [draft, setDraft] = useState('');
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState('');
@@ -59,12 +59,14 @@ export default function TopicCard({ subject, topic }) {
           </button>
         )}
         <span className="flex-1 text-sm font-medium text-stone-900 leading-tight">{topic.name}</span>
-        <button
-          onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
-          className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
-        >
-          <X size={14} />
-        </button>
+        {editing && (
+          <button
+            onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
+            className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {!hasSubtopics && (
@@ -93,12 +95,14 @@ export default function TopicCard({ subject, topic }) {
                 <span className={`flex-1 text-[11px] leading-tight ${st.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>
                   {st.name}
                 </span>
-                <button
-                  onClick={() => updateSubjects(mutate.deleteSubtopic(subjects, subject.id, topic.id, st.id))}
-                  className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
-                >
-                  <X size={11} />
-                </button>
+                {editing && (
+                  <button
+                    onClick={() => updateSubjects(mutate.deleteSubtopic(subjects, subject.id, topic.id, st.id))}
+                    className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
+                  >
+                    <X size={11} />
+                  </button>
+                )}
               </div>
               <div className="mt-0.5 ml-[18px]">
                 <ScoreField
@@ -113,6 +117,7 @@ export default function TopicCard({ subject, topic }) {
         })}
       </div>
 
+      {editing && (
       <div className="flex gap-1 mt-1 pt-1 border-t border-stone-100">
         <input
           value={draft}
@@ -128,8 +133,9 @@ export default function TopicCard({ subject, topic }) {
           <Plus size={11} />
         </button>
       </div>
+      )}
 
-      {hasSubtopics && (
+      {editing && hasSubtopics && (
         <div className="flex items-center justify-between mt-1 pt-1 border-t border-stone-100">
           <label data-tappable className="flex items-center gap-1 text-[9px] text-stone-500 cursor-pointer">
             {testLoading ? <Loader2 size={11} className="animate-spin" /> : <ImageIcon size={11} />}

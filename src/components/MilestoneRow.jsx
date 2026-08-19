@@ -4,7 +4,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 
 export default function MilestoneRow({ subject, topic }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const StatusIcon = STATUS_META[topic.status].icon;
 
   return (
@@ -20,12 +20,14 @@ export default function MilestoneRow({ subject, topic }) {
         <span className={`flex-1 text-sm ${topic.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-800'}`}>
           {topic.name}
         </span>
-        <button
-          onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
-          className="p-1 text-stone-300 hover:text-rose-600"
-        >
-          <X size={16} />
-        </button>
+        {editing && (
+          <button
+            onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
+            className="p-1 text-stone-300 hover:text-rose-600"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
       <div className="flex gap-1.5 mt-2 ml-8">
         {MASTERY_LEVELS.filter(m => m.value > 0).map(m => (

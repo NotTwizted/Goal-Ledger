@@ -5,7 +5,7 @@ import * as mutate from '../lib/mutations';
 import { navigate, paths } from '../lib/router';
 
 export default function PastPapersPage({ subject, paper }) {
-  const { subjects, updateSubjects } = useLedger();
+  const { subjects, updateSubjects, editing } = useLedger();
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
 
   const topicCounts = {};
@@ -52,12 +52,14 @@ export default function PastPapersPage({ subject, paper }) {
                   {formatDateTime(pp.uploadedAt)} · {(pp.mistakes || []).length} mistake{(pp.mistakes || []).length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deletePastPaper(subjects, subject.id, pp.id)); }}
-                className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
-              >
-                <X size={14} />
-              </button>
+              {editing && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deletePastPaper(subjects, subject.id, pp.id)); }}
+                  className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
               <ChevronRight size={16} className="shrink-0 text-stone-400" />
             </div>
           ))}
