@@ -12,6 +12,7 @@ import { LEVELS, MATHS_COMPONENTS, OTHER, SUBJECT_BOARDS, getPaperCode } from '.
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { navigate, paths } from '../lib/router';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const SORT_OPTIONS = [
   { key: 'mastery', label: '% Mastered' },
@@ -23,6 +24,7 @@ export default function DashboardPage({ category }) {
   const isStudyCategory = category === 'study';
 
   const [showAdd, setShowAdd] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [sortOrder, setSortOrder] = useState('mastery');
   const [goalName, setGoalName] = useState('');
   const [target, setTarget] = useState('');
@@ -87,6 +89,11 @@ export default function DashboardPage({ category }) {
     if (sortOrder === 'alphabetical') return a.name.localeCompare(b.name);
     return computeMastery(b.topics) - computeMastery(a.topics);
   });
+
+  const confirmDelete = () => {
+    updateSubjects(mutate.deleteSubject(subjects, pendingDelete.id));
+    setPendingDelete(null);
+  };
 
   return (
     <div className="p-6">
@@ -281,7 +288,7 @@ export default function DashboardPage({ category }) {
             >
               {editing && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deleteSubject(subjects, s.id)); }}
+                  onClick={(e) => { e.stopPropagation(); setPendingDelete(s); }}
                   className="absolute top-3 right-3 p-1 text-stone-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 size={16} />
@@ -333,6 +340,19 @@ export default function DashboardPage({ category }) {
           );
         })}
       </div>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pendingDelete.name}?`}
+          body={
+            pendingDelete.topics.length
+              ? `This removes the ${isStudyCategory ? 'subject' : 'goal'} and all ${pendingDelete.topics.length} of its ${isStudyCategory ? 'topics' : 'milestones'}, along with every score and past paper recorded against it. This one cannot be undone.`
+              : 'This cannot be undone.'
+          }
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }

@@ -5,12 +5,14 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
 import ScoreField from './ScoreField';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function TopicCard({ subject, topic }) {
   const { subjects, updateSubjects, editing } = useLedger();
   const [draft, setDraft] = useState('');
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState('');
+  const [pending, setPending] = useState(null);
 
   const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
   const StatusIcon = STATUS_META[topic.status].icon;
@@ -61,7 +63,7 @@ export default function TopicCard({ subject, topic }) {
         <span className="flex-1 text-sm font-medium text-stone-900 leading-tight">{topic.name}</span>
         {editing && (
           <button
-            onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
+            onClick={() => setPending({ kind: 'topic' })}
             className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
           >
             <X size={14} />
@@ -97,7 +99,7 @@ export default function TopicCard({ subject, topic }) {
                 </span>
                 {editing && (
                   <button
-                    onClick={() => updateSubjects(mutate.deleteSubtopic(subjects, subject.id, topic.id, st.id))}
+                    onClick={() => setPending({ kind: 'subtopic', subtopic: st })}
                     className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
                   >
                     <X size={11} />
@@ -166,6 +168,32 @@ export default function TopicCard({ subject, topic }) {
         <p className="text-[9px] text-amber-700 mt-1 leading-tight">
           Focus: {latestTest.focus.join(', ')}
         </p>
+      )}
+
+      {pending?.kind === 'topic' && (
+        <ConfirmDialog
+          title={`Delete "${topic.name}"?`}
+          body={hasSubtopics
+            ? `All ${topic.subtopics.length} subtopics go with it. Reloading the standard topics brings them back with the progress you have recorded.`
+            : 'Reloading the standard topics brings it back with the progress you have recorded.'}
+          onConfirm={() => {
+            updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id));
+            setPending(null);
+          }}
+          onCancel={() => setPending(null)}
+        />
+      )}
+
+      {pending?.kind === 'subtopic' && (
+        <ConfirmDialog
+          title={`Delete "${pending.subtopic.name}"?`}
+          body="Reloading the standard topics brings it back with the status and score you have recorded."
+          onConfirm={() => {
+            updateSubjects(mutate.deleteSubtopic(subjects, subject.id, topic.id, pending.subtopic.id));
+            setPending(null);
+          }}
+          onCancel={() => setPending(null)}
+        />
       )}
     </div>
   );

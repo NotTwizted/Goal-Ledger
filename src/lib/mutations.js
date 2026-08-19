@@ -12,6 +12,13 @@ import {
 // Every function here takes the current subject list and returns the next one,
 // so pages never have to hand-roll a nested spread.
 
+// Deleting a topic or subtopic sets it aside instead of destroying it, so
+// reloading the standard checklist can bring it back with its recorded
+// progress. The cap stops a long-lived ledger growing without bound.
+const ARCHIVE_LIMIT = 100;
+
+const archive = (list, item) => (item ? [...(list || []), item].slice(-ARCHIVE_LIMIT) : (list || []));
+
 const mapSubject = (subjects, subjectId, fn) =>
   subjects.map(s => (s.id === subjectId ? fn(s) : s));
 
@@ -64,6 +71,7 @@ export function deleteTopic(subjects, subjectId, topicId) {
   return mapSubject(subjects, subjectId, s => ({
     ...s,
     topics: s.topics.filter(t => t.id !== topicId),
+    archivedTopics: archive(s.archivedTopics, s.topics.find(t => t.id === topicId)),
   }));
 }
 
@@ -89,7 +97,11 @@ export function addSubtopic(subjects, subjectId, topicId, name) {
 
 export function deleteSubtopic(subjects, subjectId, topicId, subtopicId) {
   return mapSubject(subjects, subjectId, s =>
-    mapTopic(s, topicId, t => ({ ...t, subtopics: (t.subtopics || []).filter(st => st.id !== subtopicId) })));
+    mapTopic(s, topicId, t => ({
+      ...t,
+      subtopics: (t.subtopics || []).filter(st => st.id !== subtopicId),
+      archivedSubtopics: archive(t.archivedSubtopics, (t.subtopics || []).find(st => st.id === subtopicId)),
+    })));
 }
 
 export function cycleSubtopicStatus(subjects, subjectId, topicId, subtopicId) {
@@ -135,7 +147,10 @@ export function appendImportedMilestones(subjects, subjectId, names) {
 // Restores the standard checklist: every syllabus topic and subtopic comes
 // back in its canonical position, keeping the progress already recorded.
 export function applySeedChecklist(subjects, subjectId, seed) {
-  return mapSubject(subjects, subjectId, s => ({ ...s, topics: syncTopicsWithSeed(s.topics, seed) }));
+  return mapSubject(subjects, subjectId, s => {
+    const { topics, archivedTopics } = syncTopicsWithSeed(s.topics, seed, s.archivedTopics || []);
+    return { ...s, topics, archivedTopics };
+  });
 }
 
 export function addPastPaperRecord(subjects, subjectId, paper, record) {

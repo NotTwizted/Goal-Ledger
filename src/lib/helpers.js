@@ -231,38 +231,53 @@ export function newUnit(name) {
 // canonical syllabus order, whatever has been deleted since the last load.
 // Anything the student added themselves keeps its progress and is kept at the
 // end of the list rather than being dropped.
+//
+// Deletions are archived rather than discarded, so a topic or subtopic that
+// comes back returns with the status, score, and completion date it had when
+// it was removed — restoring the checklist never costs you recorded work.
 function mergeSeedTopic(existing, seedTopic, paper) {
   const seedSubtopics = seedTopic.subtopics || [];
   if (!existing) {
-    return {
-      ...newUnit(seedTopic.name),
-      paper,
-      subtopics: seedSubtopics.map(newUnit),
-    };
+    return { ...newUnit(seedTopic.name), paper, subtopics: seedSubtopics.map(newUnit) };
   }
-  const leftover = [...(existing.subtopics || [])];
+
+  const live = [...(existing.subtopics || [])];
+  const archived = [...(existing.archivedSubtopics || [])];
+
+  const claim = (name) => {
+    let i = live.findIndex(st => normText(st.name) === normText(name));
+    if (i !== -1) return live.splice(i, 1)[0];
+    i = archived.findIndex(st => normText(st.name) === normText(name));
+    if (i !== -1) return archived.splice(i, 1)[0];
+    return null;
+  };
+
   const subtopics = seedSubtopics.map(name => {
-    const idx = leftover.findIndex(st => normText(st.name) === normText(name));
-    if (idx === -1) return newUnit(name);
-    const [found] = leftover.splice(idx, 1);
-    return { ...found, name };
+    const found = claim(name);
+    return found ? { ...found, name } : newUnit(name);
   });
+
   return {
     ...existing,
     name: seedTopic.name,
     paper: existing.paper || paper,
-    subtopics: [...subtopics, ...leftover],
+    subtopics: [...subtopics, ...live],
+    archivedSubtopics: archived,
   };
 }
 
-export function syncTopicsWithSeed(topics, seed) {
-  const remaining = [...topics];
+export function syncTopicsWithSeed(topics, seed, archivedTopics = []) {
+  const live = [...topics];
+  const archived = [...archivedTopics];
+
   const claim = (name, paper) => {
     const n = normText(name);
-    let idx = remaining.findIndex(t => normText(t.name) === n && (t.paper || 'Paper 1') === paper);
-    if (idx === -1) idx = remaining.findIndex(t => normText(t.name) === n);
-    if (idx === -1) return null;
-    return remaining.splice(idx, 1)[0];
+    let i = live.findIndex(t => normText(t.name) === n && (t.paper || 'Paper 1') === paper);
+    if (i === -1) i = live.findIndex(t => normText(t.name) === n);
+    if (i !== -1) return live.splice(i, 1)[0];
+    i = archived.findIndex(t => normText(t.name) === n);
+    if (i !== -1) return archived.splice(i, 1)[0];
+    return null;
   };
 
   const ordered = [];
@@ -271,5 +286,6 @@ export function syncTopicsWithSeed(topics, seed) {
       ordered.push(mergeSeedTopic(claim(seedTopic.name, paper), seedTopic, paper));
     });
   });
-  return [...ordered, ...remaining];
+
+  return { topics: [...ordered, ...live], archivedTopics: archived };
 }

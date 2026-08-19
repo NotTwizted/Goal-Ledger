@@ -2,10 +2,13 @@ import { ChevronRight, X } from 'lucide-react';
 import { formatDateTime, pastPaperLabel } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
+import { useState } from 'react';
 import { navigate, paths } from '../lib/router';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function PastPapersPage({ subject, paper }) {
   const { subjects, updateSubjects, editing } = useLedger();
+  const [pendingDelete, setPendingDelete] = useState(null);
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
 
   const topicCounts = {};
@@ -54,7 +57,7 @@ export default function PastPapersPage({ subject, paper }) {
               </div>
               {editing && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); updateSubjects(mutate.deletePastPaper(subjects, subject.id, pp.id)); }}
+                  onClick={(e) => { e.stopPropagation(); setPendingDelete(pp); }}
                   className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
                 >
                   <X size={14} />
@@ -64,6 +67,18 @@ export default function PastPapersPage({ subject, paper }) {
             </div>
           ))}
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pastPaperLabel(pendingDelete)}?`}
+          body="The paper's recorded mistakes go with it. Scores already applied to your topics stay as they are."
+          onConfirm={() => {
+            updateSubjects(mutate.deletePastPaper(subjects, subject.id, pendingDelete.id));
+            setPendingDelete(null);
+          }}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

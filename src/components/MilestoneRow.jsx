@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { MASTERY_LEVELS, STATUS_META } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function MilestoneRow({ subject, topic }) {
   const { subjects, updateSubjects, editing } = useLedger();
+  const [confirming, setConfirming] = useState(false);
   const StatusIcon = STATUS_META[topic.status].icon;
 
   return (
@@ -22,7 +25,7 @@ export default function MilestoneRow({ subject, topic }) {
         </span>
         {editing && (
           <button
-            onClick={() => updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id))}
+            onClick={() => setConfirming(true)}
             className="p-1 text-stone-300 hover:text-rose-600"
           >
             <X size={16} />
@@ -42,6 +45,18 @@ export default function MilestoneRow({ subject, topic }) {
           </button>
         ))}
       </div>
+
+      {confirming && (
+        <ConfirmDialog
+          title={`Delete "${topic.name}"?`}
+          body="This milestone and its rating will be removed."
+          onConfirm={() => {
+            updateSubjects(mutate.deleteTopic(subjects, subject.id, topic.id));
+            setConfirming(false);
+          }}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </div>
   );
 }
