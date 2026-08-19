@@ -5,6 +5,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
 import ScoreField from './ScoreField';
+import { paperAccent, progressColor } from '../lib/palette';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function TopicCard({ subject, topic }) {
@@ -18,6 +19,14 @@ export default function TopicCard({ subject, topic }) {
   const StatusIcon = STATUS_META[topic.status].icon;
   const doneCount = hasSubtopics ? topic.subtopics.filter(st => st.status === 'done').length : 0;
   const latestTest = (topic.unitTests || [])[(topic.unitTests || []).length - 1];
+
+  // The card carries its paper's colour, and turns green once everything in it
+  // is done — a state worth spotting from across a grid of twenty cards.
+  const accent = paperAccent(topic.paper || 'Paper 1');
+  const unitTotal = hasSubtopics ? topic.subtopics.length : 1;
+  const unitDone = hasSubtopics ? doneCount : (topic.status === 'done' ? 1 : 0);
+  const percent = Math.round((unitDone / unitTotal) * 100);
+  const barColor = progressColor(percent, accent);
 
   const submitSubtopic = () => {
     updateSubjects(mutate.addSubtopic(subjects, subject.id, topic.id, draft));
@@ -45,7 +54,12 @@ export default function TopicCard({ subject, topic }) {
   };
 
   return (
-    <div className="aspect-square bg-white border border-stone-300 rounded-lg p-3 flex flex-col overflow-hidden">
+    <div
+      className={`aspect-square border border-stone-300 border-t-4 rounded-lg p-3 flex flex-col overflow-hidden ${
+        percent >= 100 ? 'bg-emerald-50' : 'bg-white'
+      }`}
+      style={{ borderTopColor: barColor }}
+    >
       <div className="flex items-start gap-2 mb-1">
         {hasSubtopics ? (
           <span className="shrink-0 text-[10px] font-mono text-stone-500 border border-stone-300 rounded px-1.5 py-0.5">
@@ -69,6 +83,13 @@ export default function TopicCard({ subject, topic }) {
             <X size={14} />
           </button>
         )}
+      </div>
+
+      <div className="h-1 bg-stone-200 rounded-full overflow-hidden mb-1.5">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${percent}%`, backgroundColor: barColor }}
+        />
       </div>
 
       {!hasSubtopics && (

@@ -5,6 +5,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractPastPaper } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
+import { paperAccent, progressColor } from '../lib/palette';
 import TopicCard from '../components/TopicCard';
 
 export default function PaperPage({ subject, paper }) {
@@ -14,6 +15,7 @@ export default function PaperPage({ subject, paper }) {
 
   const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
+  const accent = paperAccent(paper);
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
 
   const uploadPastPaper = async (file) => {
@@ -34,13 +36,16 @@ export default function PaperPage({ subject, paper }) {
 
   return (
     <div className="p-6">
-      <div className="mb-4 p-3 bg-white border border-stone-300 rounded-lg">
+      <div className="mb-4 p-3 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: accent }}>
         <div className="flex justify-between text-xs text-stone-500 mb-1">
           <span>{paper} completion</span>
           <span className="font-mono">{progress}%</span>
         </div>
         <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
-          <div className="h-full bg-stone-800 rounded-full transition-all" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
+          />
         </div>
       </div>
 

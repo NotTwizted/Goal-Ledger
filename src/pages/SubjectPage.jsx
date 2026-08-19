@@ -11,6 +11,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractChecklistDraft } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
+import { categoryAccent, paperAccent, progressColor } from '../lib/palette';
 import MilestoneRow from '../components/MilestoneRow';
 
 export default function SubjectPage({ subject }) {
@@ -37,6 +38,7 @@ export default function SubjectPage({ subject }) {
   };
 
   const progress = computeProgress(subject.topics);
+  const accent = categoryAccent(subject.category);
   const code = isStudy ? getPaperCode(subject.level, subject.name, subject.board) : null;
   const specUrl = isStudy ? getSpecUrl(subject.level, subject.name, subject.board) : null;
   const papersInUse = [...new Set(subject.topics.map(t => t.paper || 'Paper 1'))];
@@ -121,7 +123,10 @@ export default function SubjectPage({ subject }) {
           <span className="font-mono">{progress}%</span>
         </div>
         <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
-          <div className="h-full bg-stone-800 rounded-full transition-all" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
+          />
         </div>
       </div>
 
@@ -265,20 +270,29 @@ export default function SubjectPage({ subject }) {
         <div className="flex flex-col gap-3">
           {papersInUse.map(p => {
             const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === p);
+            const paperProgress = computeProgress(paperTopics);
+            const paperColor = paperAccent(p);
             return (
               <button
                 key={p}
                 onClick={() => navigate(paths.paper(subject.id, p))}
-                className="text-left bg-white border-2 border-stone-300 rounded-xl p-4 transition-colors"
+                className="text-left bg-white border border-stone-300 border-l-4 rounded-xl p-4 transition-colors"
+                style={{ borderLeftColor: paperColor }}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <h3 className="font-serif text-base text-stone-800">{p}</h3>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs text-stone-500">
-                      {computeProgress(paperTopics)}% · {paperTopics.length} item{paperTopics.length !== 1 ? 's' : ''}
+                      {paperProgress}% · {paperTopics.length} item{paperTopics.length !== 1 ? 's' : ''}
                     </span>
                     <ChevronRight size={16} className="text-stone-400" />
                   </div>
+                </div>
+                <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${paperProgress}%`, backgroundColor: progressColor(paperProgress, paperColor) }}
+                  />
                 </div>
               </button>
             );

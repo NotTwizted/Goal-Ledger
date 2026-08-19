@@ -4,6 +4,7 @@ import { getPaperCode } from '../lib/syllabus';
 import { useLedger } from '../lib/ledger';
 import { buildSummary, buildWeeklyReport } from '../lib/report';
 import { navigate, paths } from '../lib/router';
+import { categoryAccent, progressColor } from '../lib/palette';
 
 const CATEGORIES = [
   { key: 'study', label: 'Studies', Icon: GraduationCap, accent: 'indigo', empty: 'No subjects yet' },
@@ -31,6 +32,7 @@ export default function HomePage() {
               <button
                 onClick={() => navigate(paths.category(key))}
                 className="text-left p-4 pb-3 transition-colors"
+                style={{ backgroundColor: `${categoryAccent(key)}0f` }}
               >
                 <div className="flex items-center gap-2">
                   <Icon size={20} className={`${accentText} shrink-0`} />
@@ -58,7 +60,16 @@ export default function HomePage() {
                               {code}
                             </span>
                           )}
-                          <span className="font-mono text-[10px] text-stone-400 shrink-0">{computeProgress(s.topics)}%</span>
+                          <span className="font-mono text-[10px] text-stone-400 shrink-0 w-8 text-right">{computeProgress(s.topics)}%</span>
+                          <span className="hidden sm:block w-12 h-1 bg-stone-200 rounded-full overflow-hidden shrink-0">
+                            <span
+                              className="block h-full rounded-full"
+                              style={{
+                                width: `${computeProgress(s.topics)}%`,
+                                backgroundColor: progressColor(computeProgress(s.topics), categoryAccent(key)),
+                              }}
+                            />
+                          </span>
                         </button>
                       );
                     })}
