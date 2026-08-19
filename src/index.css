@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Press feedback: everything clickable dips slightly while held, so a tap
+   is acknowledged even before the screen it opens has rendered. Buttons get
+   it for free; a div or row that acts as a button opts in with data-tappable. */
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  [data-tappable] {
+    transition: transform 120ms ease-out;
+  }
+
+  button:active,
+  [data-tappable]:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled:active {
+    transform: none;
+  }
+}

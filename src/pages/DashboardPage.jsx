@@ -269,6 +269,7 @@ export default function DashboardPage({ category }) {
           return (
             <div
               key={s.id}
+              data-tappable
               onClick={() => navigate(paths.subject(s.id))}
               className={`group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer hover:border-stone-500 transition-colors ${
                 isStudy ? 'border-l-indigo-800' : 'border-l-amber-600'

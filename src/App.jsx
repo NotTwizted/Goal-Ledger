@@ -427,8 +427,14 @@ export default function StudyTracker() {
                 <ChevronLeft size={20} />
               </button>
             )}
-            {header.icon}
-            <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
+            <button
+              onClick={() => navigate(paths.home())}
+              title="Back to the weekly report"
+              className="flex items-center gap-2 rounded px-1.5 py-1 -mx-1.5 hover:bg-stone-200"
+            >
+              {header.icon}
+              <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
+            </button>
           </div>
           <button
             onClick={() => supabase.auth.signOut()}

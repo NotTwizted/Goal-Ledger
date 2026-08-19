@@ -41,6 +41,7 @@ export default function PastPapersPage({ subject, paper }) {
           {pastPapers.map(pp => (
             <div
               key={pp.id}
+              data-tappable
               onClick={() => navigate(paths.pastPaper(subject.id, paper, pp.id))}
               className="cursor-pointer flex items-center gap-3 p-3 bg-white border border-stone-300 rounded-lg hover:border-stone-500 transition-colors"
             >
