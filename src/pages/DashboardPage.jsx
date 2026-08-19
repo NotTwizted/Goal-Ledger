@@ -13,6 +13,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { navigate, paths } from '../lib/router';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { nextSubjectAccent, progressColor, subjectAccent } from '../lib/palette';
 
 const SORT_OPTIONS = [
   { key: 'mastery', label: '% Mastered' },
@@ -67,6 +68,7 @@ export default function DashboardPage({ category }) {
 
     updateSubjects([...subjects, {
       id: uid(),
+      accent: nextSubjectAccent(subjects),
       name,
       spec,
       category,
@@ -275,6 +277,7 @@ export default function DashboardPage({ category }) {
           const progress = computeProgress(s.topics);
           const masteryLevel = MASTERY_LEVELS[Math.round(computeMastery(s.topics))];
           const isStudy = s.category === 'study';
+          const accent = subjectAccent(s);
           const code = isStudy ? getPaperCode(s.level, s.name, s.board) : null;
 
           return (
@@ -282,9 +285,8 @@ export default function DashboardPage({ category }) {
               key={s.id}
               data-tappable
               onClick={() => navigate(paths.subject(s.id))}
-              className={`group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer transition-colors ${
-                isStudy ? 'border-l-indigo-800' : 'border-l-amber-600'
-              }`}
+              className="group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer transition-colors"
+              style={{ borderLeftColor: accent }}
             >
               {editing && (
                 <button
@@ -296,8 +298,8 @@ export default function DashboardPage({ category }) {
               )}
               <div className="flex items-baseline gap-2 pr-6">
                 {isStudy
-                  ? <GraduationCap size={14} className="text-indigo-800 shrink-0" />
-                  : <Target size={14} className="text-amber-700 shrink-0" />}
+                  ? <GraduationCap size={14} className="shrink-0" style={{ color: accent }} />
+                  : <Target size={14} className="shrink-0" style={{ color: accent }} />}
                 <h2 className="font-serif text-lg text-stone-900 flex-1 truncate">{s.name}{mathsComponentTag(s)}</h2>
                 {code && (
                   <span className="shrink-0 font-mono text-[10px] text-stone-400 border border-stone-300 rounded px-1 py-0.5">
@@ -325,8 +327,8 @@ export default function DashboardPage({ category }) {
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex-1 h-1.5 bg-stone-200 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${isStudy ? 'bg-indigo-800' : 'bg-amber-600'}`}
-                    style={{ width: `${progress}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
                   />
                 </div>
                 <span className="font-mono text-xs text-stone-600 w-10 text-right">{progress}%</span>

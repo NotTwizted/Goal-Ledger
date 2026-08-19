@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
+import { subjectAccent } from './lib/palette';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import SubjectPage from './pages/SubjectPage';
@@ -376,9 +377,12 @@ export default function StudyTracker() {
     ? (routeSubject?.pastPapers || []).find(pp => pp.id === route.pastPaperId)
     : null;
 
-  const categoryIcon = (category) => (category === 'study'
-    ? <GraduationCap size={22} className="text-indigo-800" />
-    : <Target size={22} className="text-amber-700" />);
+  const categoryIcon = (category, subject) => {
+    const style = subject ? { color: subjectAccent(subject) } : undefined;
+    return category === 'study'
+      ? <GraduationCap size={22} className={subject ? '' : 'text-indigo-800'} style={style} />
+      : <Target size={22} className={subject ? '' : 'text-amber-700'} style={style} />;
+  };
 
   const header = (() => {
     switch (route.name) {
@@ -391,7 +395,7 @@ export default function StudyTracker() {
       case 'subject':
         return {
           back: routeSubject ? paths.category(routeSubject.category) : paths.home(),
-          icon: routeSubject ? categoryIcon(routeSubject.category) : null,
+          icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : null,
           title: routeSubject ? `${routeSubject.name}${mathsComponentTag(routeSubject)}` : 'Subject',
         };
       case 'paper':
@@ -407,7 +411,7 @@ export default function StudyTracker() {
       case 'reportDetail':
         return {
           back: paths.home(),
-          icon: routeSubject ? categoryIcon(routeSubject.category) : <CalendarCheck size={22} className="text-stone-800" />,
+          icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : <CalendarCheck size={22} className="text-stone-800" />,
           title: routeSubject ? routeSubject.name : 'Weekly report',
         };
       default:

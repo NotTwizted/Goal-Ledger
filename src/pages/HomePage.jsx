@@ -4,7 +4,7 @@ import { getPaperCode } from '../lib/syllabus';
 import { useLedger } from '../lib/ledger';
 import { buildSummary, buildWeeklyReport } from '../lib/report';
 import { navigate, paths } from '../lib/router';
-import { categoryAccent, progressColor } from '../lib/palette';
+import { categoryAccent, progressColor, subjectAccent } from '../lib/palette';
 
 const CATEGORIES = [
   { key: 'study', label: 'Studies', Icon: GraduationCap, accent: 'indigo', empty: 'No subjects yet' },
@@ -66,7 +66,7 @@ export default function HomePage() {
                               className="block h-full rounded-full"
                               style={{
                                 width: `${computeProgress(s.topics)}%`,
-                                backgroundColor: progressColor(computeProgress(s.topics), categoryAccent(key)),
+                                backgroundColor: progressColor(computeProgress(s.topics), subjectAccent(s)),
                               }}
                             />
                           </span>
@@ -139,14 +139,13 @@ export default function HomePage() {
               <button
                 key={s.id}
                 onClick={() => navigate(paths.report(s.id))}
-                className={`text-left p-4 bg-white border-l-4 border border-stone-300 rounded-lg transition-colors ${
-                  s.category === 'study' ? 'border-l-indigo-800' : 'border-l-amber-600'
-                }`}
+                className="text-left p-4 bg-white border-l-4 border border-stone-300 rounded-lg transition-colors"
+                style={{ borderLeftColor: subjectAccent(s) }}
               >
                 <div className="flex items-center gap-2">
                   {s.category === 'study'
-                    ? <GraduationCap size={16} className="text-indigo-800 shrink-0" />
-                    : <Target size={16} className="text-amber-700 shrink-0" />}
+                    ? <GraduationCap size={16} className="shrink-0" style={{ color: subjectAccent(s) }} />
+                    : <Target size={16} className="shrink-0" style={{ color: subjectAccent(s) }} />}
                   <h3 className="font-serif text-base text-stone-900 flex-1 truncate">{s.name}</h3>
                   <span className="font-mono text-[10px] text-stone-400 shrink-0">
                     {groups.length} item{groups.length !== 1 ? 's' : ''}

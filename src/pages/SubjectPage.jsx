@@ -11,7 +11,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractChecklistDraft } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
-import { categoryAccent, paperAccent, progressColor } from '../lib/palette';
+import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import MilestoneRow from '../components/MilestoneRow';
 
 export default function SubjectPage({ subject }) {
@@ -38,7 +38,7 @@ export default function SubjectPage({ subject }) {
   };
 
   const progress = computeProgress(subject.topics);
-  const accent = categoryAccent(subject.category);
+  const accent = subjectAccent(subject);
   const code = isStudy ? getPaperCode(subject.level, subject.name, subject.board) : null;
   const specUrl = isStudy ? getSpecUrl(subject.level, subject.name, subject.board) : null;
   const papersInUse = [...new Set(subject.topics.map(t => t.paper || 'Paper 1'))];
@@ -271,7 +271,7 @@ export default function SubjectPage({ subject }) {
           {papersInUse.map(p => {
             const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === p);
             const paperProgress = computeProgress(paperTopics);
-            const paperColor = paperAccent(p);
+            const paperColor = paperShade(accent, p);
             return (
               <button
                 key={p}

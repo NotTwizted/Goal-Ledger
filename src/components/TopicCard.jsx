@@ -5,7 +5,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
 import ScoreField from './ScoreField';
-import { paperAccent, progressColor } from '../lib/palette';
+import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function TopicCard({ subject, topic }) {
@@ -22,7 +22,7 @@ export default function TopicCard({ subject, topic }) {
 
   // The card carries its paper's colour, and turns green once everything in it
   // is done — a state worth spotting from across a grid of twenty cards.
-  const accent = paperAccent(topic.paper || 'Paper 1');
+  const accent = paperShade(subjectAccent(subject), topic.paper || 'Paper 1');
   const unitTotal = hasSubtopics ? topic.subtopics.length : 1;
   const unitDone = hasSubtopics ? doneCount : (topic.status === 'done' ? 1 : 0);
   const percent = Math.round((unitDone / unitTotal) * 100);

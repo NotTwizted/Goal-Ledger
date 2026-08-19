@@ -5,7 +5,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractPastPaper } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
-import { paperAccent, progressColor } from '../lib/palette';
+import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import TopicCard from '../components/TopicCard';
 
 export default function PaperPage({ subject, paper }) {
@@ -15,7 +15,7 @@ export default function PaperPage({ subject, paper }) {
 
   const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
-  const accent = paperAccent(paper);
+  const accent = paperShade(subjectAccent(subject), paper);
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
 
   const uploadPastPaper = async (file) => {
