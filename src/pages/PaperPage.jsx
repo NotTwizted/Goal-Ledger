@@ -55,6 +55,7 @@ export default function PaperPage({ subject, paper }) {
           <ChevronRight size={16} className="text-stone-400" />
         </button>
         <label
+          data-tappable
           title="Upload a marked past paper"
           className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 cursor-pointer border border-stone-300 rounded-lg px-3 py-3 hover:border-stone-500"
         >

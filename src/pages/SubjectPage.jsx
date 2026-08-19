@@ -163,7 +163,7 @@ export default function SubjectPage({ subject }) {
           { accept: 'image/*', Icon: ImageIcon, label: isStudy ? 'Upload a photo of the specification' : 'Upload a photo of the topics' },
           { accept: 'application/pdf', Icon: FileText, label: isStudy ? 'Upload a PDF of the specification' : 'Upload a PDF of the topics' },
         ].map(({ accept, Icon, label }) => (
-          <label key={accept} className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 cursor-pointer">
+          <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 cursor-pointer">
             {fileLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
             {fileLoading ? 'Reading file…' : label}
             <input

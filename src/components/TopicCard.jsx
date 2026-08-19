@@ -131,7 +131,7 @@ export default function TopicCard({ subject, topic }) {
 
       {hasSubtopics && (
         <div className="flex items-center justify-between mt-1 pt-1 border-t border-stone-100">
-          <label className="flex items-center gap-1 text-[9px] text-stone-500 hover:text-stone-800 cursor-pointer">
+          <label data-tappable className="flex items-center gap-1 text-[9px] text-stone-500 hover:text-stone-800 cursor-pointer">
             {testLoading ? <Loader2 size={11} className="animate-spin" /> : <ImageIcon size={11} />}
             {testLoading ? 'Analyzing…' : 'Upload unit test'}
             <input

@@ -1,20 +1,40 @@
 @import "tailwindcss";
 
-/* Press feedback: everything clickable dips slightly while held, so a tap
-   is acknowledged even before the screen it opens has rendered. Buttons get
-   it for free; a div or row that acts as a button opts in with data-tappable. */
+/* Press feedback. A quick tap can release before :active has been on screen
+   long enough to notice, so the dip is a keyframe animation driven from a
+   click listener instead — it always plays in full. Buttons and file-upload
+   labels get it automatically; a div acting as a button opts in with
+   data-tappable. */
+@keyframes press {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+@keyframes press-card {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+
+/* Navigation replaces the page immediately, which would cut a press
+   animation short — so the arriving page animates in as the acknowledgement
+   instead. */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  button,
-  [data-tappable] {
-    transition: transform 120ms ease-out;
+  .is-pressed {
+    animation: press 240ms ease-out;
   }
 
-  button:active,
-  [data-tappable]:active {
-    transform: scale(0.98);
+  [data-tappable].is-pressed {
+    animation: press-card 240ms ease-out;
   }
 
-  button:disabled:active {
-    transform: none;
+  .page-enter {
+    animation: page-enter 200ms ease-out;
   }
 }

@@ -193,6 +193,33 @@ export default function StudyTracker() {
     }
   }, [loaded, subjects]);
 
+  // One listener for the whole app, so every button — including ones rendered
+  // later — acknowledges a press without each component opting in.
+  useEffect(() => {
+    const PRESSABLE = 'button, [data-tappable], label[data-tappable]';
+
+    const onPointerDown = (e) => {
+      const el = e.target.closest?.(PRESSABLE);
+      if (!el || el.disabled) return;
+      el.classList.remove('is-pressed');
+      void el.offsetWidth; // restart the animation on a rapid second press
+      el.classList.add('is-pressed');
+    };
+
+    const onAnimationEnd = (e) => {
+      if (e.animationName === 'press' || e.animationName === 'press-card') {
+        e.target.classList.remove('is-pressed');
+      }
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('animationend', onAnimationEnd, true);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('animationend', onAnimationEnd, true);
+    };
+  }, []);
+
   const requestNotificationPermission = useCallback(async () => {
     if (typeof Notification === 'undefined') return;
     setNotifPermission(await Notification.requestPermission());
@@ -450,7 +477,9 @@ export default function StudyTracker() {
           </div>
         )}
 
-        {page}
+        <div key={JSON.stringify(route)} className="page-enter">
+          {page}
+        </div>
       </div>
     </LedgerContext.Provider>
   );
