@@ -55,6 +55,13 @@ export function subjectAccent(subject) {
 
 export { SUBJECT_ACCENTS };
 
+// Where a subject's colour sits in the palette, so a list can be ordered by
+// it. Anything holding a retired hue sorts to the end rather than at random.
+export function accentOrder(subject) {
+  const index = SUBJECT_ACCENTS.indexOf(subjectAccent(subject));
+  return index === -1 ? SUBJECT_ACCENTS.length : index;
+}
+
 export function nextSubjectAccent(subjects) {
   return freeAccent(accentCounts(subjects));
 }

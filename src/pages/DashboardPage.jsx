@@ -13,11 +13,12 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { navigate, paths } from '../lib/router';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { nextSubjectAccent, progressColor, subjectAccent } from '../lib/palette';
+import { accentOrder, nextSubjectAccent, progressColor, subjectAccent } from '../lib/palette';
 
 const SORT_OPTIONS = [
   { key: 'mastery', label: '% Mastered' },
   { key: 'alphabetical', label: 'Alphabetical' },
+  { key: 'colour', label: 'Colour' },
 ];
 
 export default function DashboardPage({ category }) {
@@ -88,7 +89,10 @@ export default function DashboardPage({ category }) {
 
   const visibleSubjects = subjects.filter(s => s.category === category);
   const sortedSubjects = [...visibleSubjects].sort((a, b) => {
-    if (sortOrder === 'alphabetical') return a.name.localeCompare(b.name);
+    if (sortOrder === 'alphabetical') return subjectLabel(a).localeCompare(subjectLabel(b));
+    // Palette order, so the list reads down the colours in a fixed sequence
+    // rather than shuffling whenever a subject is added.
+    if (sortOrder === 'colour') return accentOrder(a) - accentOrder(b);
     return computeMastery(b.topics) - computeMastery(a.topics);
   });
 
