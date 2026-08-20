@@ -26,10 +26,6 @@ const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
 };
-const CATEGORY_ACCENTS = {
-  study: '#3730a3',
-  general: '#b45309',
-};
 
 function accentCounts(subjects) {
   const counts = new Map(SUBJECT_ACCENTS.map(hex => [hex, 0]));
