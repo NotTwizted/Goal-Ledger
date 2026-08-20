@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Check, Lock, LogOut, MoreVertical } from 'lucide-react';
+import { Bell, BellOff, Lock, LogOut, MoreVertical } from 'lucide-react';
 
 // The settings that aren't navigation live behind the three dots, so the
 // header keeps only the two places you actually go.
@@ -44,9 +44,7 @@ export default function HeaderMenu({
         title="Settings"
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center px-2.5 py-2.5 rounded-lg border ${
-          editing ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300'
-        }`}
+        className="flex items-center px-2.5 py-2.5 rounded-lg border text-stone-600 border-stone-300"
       >
         <MoreVertical size={19} />
       </button>
@@ -67,15 +65,17 @@ export default function HeaderMenu({
             <span className="text-[10px] font-mono text-stone-400">{remindersLabel}</span>
           </button>
 
-          <button
-            role="menuitem"
-            onClick={() => { setEditing(v => !v); setOpen(false); }}
-            className={`${item} border-t border-stone-200`}
-          >
-            {editing ? <Check size={15} className="shrink-0" /> : <Lock size={15} className="shrink-0" />}
-            <span className="flex-1">{editing ? 'Done editing' : 'Edit'}</span>
-            <span className="text-[10px] font-mono text-stone-400">{editing ? 'Unlocked' : 'Locked'}</span>
-          </button>
+          {!editing && (
+            <button
+              role="menuitem"
+              onClick={() => { setEditing(true); setOpen(false); }}
+              className={`${item} border-t border-stone-200`}
+            >
+              <Lock size={15} className="shrink-0" />
+              <span className="flex-1">Edit</span>
+              <span className="text-[10px] font-mono text-stone-400">Locked</span>
+            </button>
+          )}
 
           <button
             role="menuitem"

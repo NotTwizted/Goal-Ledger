@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarCheck, ChevronLeft, GraduationCap, Target } from 'lucide-react';
+import { CalendarCheck, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
@@ -521,6 +521,15 @@ export default function StudyTracker() {
               </button>
             );
           })}
+          {editing && (
+            <button
+              onClick={() => setEditing(false)}
+              title="Lock the ledger"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border font-medium bg-stone-800 text-white border-stone-800"
+            >
+              <Check size={17} /> <span className="hidden sm:inline">Done</span>
+            </button>
+          )}
           <HeaderMenu
             editing={editing}
             setEditing={setEditing}
