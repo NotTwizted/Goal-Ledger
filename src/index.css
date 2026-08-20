@@ -7,7 +7,7 @@
    data-tappable. */
 @keyframes press {
   0%   { transform: scale(1); }
-  40%  { transform: scale(0.94); }
+  35%  { transform: scale(0.93); }
   100% { transform: scale(1); }
 }
 
@@ -35,7 +35,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .is-pressed {
-    animation: press 240ms ease-out;
+    animation: press 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   [data-tappable].is-pressed {

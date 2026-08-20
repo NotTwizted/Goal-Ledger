@@ -9,9 +9,24 @@ export function currentPath() {
   return raw.startsWith('/') ? raw : '/';
 }
 
-export function navigate(path) {
+// A button that navigates is unmounted the instant the route changes, which
+// cut its press animation off before it could be seen — the new page arriving
+// was the only feedback that the tap had registered. Holding the navigation
+// back by a beat lets the button itself answer first. It is short enough to
+// read as the button responding rather than the app hesitating.
+const PRESS_ANIMATION_MS = 140;
+
+const prefersReducedMotion = () =>
+  typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export function navigate(path, { immediate = false } = {}) {
   if (currentPath() === path) return;
-  window.location.hash = path;
+  if (immediate || prefersReducedMotion()) {
+    window.location.hash = path;
+    return;
+  }
+  window.setTimeout(() => { window.location.hash = path; }, PRESS_ANIMATION_MS);
 }
 
 export const paths = {
