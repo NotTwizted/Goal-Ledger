@@ -26,11 +26,7 @@ export default function PaperPage({ subject, paper }) {
   // Falls back to the first topic, which also covers the selected one being deleted.
   const selected = paperTopics.find(t => t.id === selectedId) || paperTopics[0];
 
-  const topicPercent = (t) => {
-    const hasSubtopics = t.subtopics && t.subtopics.length > 0;
-    if (!hasSubtopics) return t.status === 'done' ? 100 : 0;
-    return Math.round((t.subtopics.filter(st => st.status === 'done').length / t.subtopics.length) * 100);
-  };
+  const topicPercent = (t) => computeProgress([t]);
 
   // Files are read one at a time rather than all at once — a dozen papers
   // fired off together would be rate limited — and everything that succeeded
@@ -125,7 +121,9 @@ export default function PaperPage({ subject, paper }) {
             {paperTopics.map(t => {
               const percent = topicPercent(t);
               const isSelected = selected && t.id === selected.id;
-              const doneCount = (t.subtopics || []).filter(st => st.status === 'done').length;
+              const subs = t.subtopics || [];
+              const doneCount = subs.filter(st => st.status === 'done').length;
+              const mastered = subs.length ? doneCount === subs.length : t.status === 'done';
               return (
                 <div
                   key={t.id}
@@ -136,7 +134,7 @@ export default function PaperPage({ subject, paper }) {
                   }`}
                   style={{ borderLeftColor: isSelected ? accent : 'transparent' }}
                 >
-                  {percent >= 100
+                  {mastered
                     ? <CheckCircle2 size={14} className="shrink-0 text-emerald-700" />
                     : <span className="shrink-0 w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: accent }} />}
                   <span className={`flex-1 text-sm leading-snug ${isSelected ? 'text-stone-900 font-medium' : 'text-stone-700'}`}>

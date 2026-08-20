@@ -9,7 +9,7 @@ import { subjectAccent } from '../lib/palette';
 // header, which is on every page rather than only this one.
 export default function HomePage() {
   const { subjects, weekOffset, setWeekOffset, notifPermission } = useLedger();
-  const { weekStart, weekEnd, reports, completedCount, masteredCount } = buildWeeklyReport(subjects, weekOffset);
+  const { weekStart, weekEnd, reports, completedCount, masteredCount, paperCount } = buildWeeklyReport(subjects, weekOffset);
 
   return (
     <div className="p-6">
@@ -27,6 +27,7 @@ export default function HomePage() {
           </p>
           <p className="text-[10px] text-stone-400 font-mono">
             {weekOffset === 0 ? 'This week · ' : ''}{masteredCount} mastered · {completedCount - masteredCount} covered
+            {paperCount > 0 && ` · ${paperCount} paper${paperCount !== 1 ? 's' : ''}`}
           </p>
         </div>
         <button
@@ -50,7 +51,7 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {reports.map(({ subject: s, groups }) => (
+          {reports.map(({ subject: s, groups, papers }) => (
             <button
               key={s.id}
               onClick={() => navigate(paths.report(s.id))}
@@ -64,10 +65,11 @@ export default function HomePage() {
                 <h3 className="font-serif text-base text-stone-900 flex-1 truncate">{s.name}</h3>
                 <span className="font-mono text-[10px] text-stone-400 shrink-0">
                   {groups.length} item{groups.length !== 1 ? 's' : ''}
+                  {papers.length > 0 && ` · ${papers.length} paper${papers.length !== 1 ? 's' : ''}`}
                 </span>
                 <ChevronRight size={16} className="text-stone-400 shrink-0" />
               </div>
-              <p className="text-xs text-stone-600 mt-1.5 leading-relaxed">{buildSummary(groups)}</p>
+              <p className="text-xs text-stone-600 mt-1.5 leading-relaxed">{buildSummary(groups, papers)}</p>
             </button>
           ))}
         </div>

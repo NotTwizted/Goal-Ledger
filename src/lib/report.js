@@ -1,4 +1,5 @@
-import { getWeekRange } from './helpers';
+import { getWeekRange, pastPaperLabel } from './helpers';
+import { getPaperCode } from './syllabus';
 
 // A week's work comes in two kinds: a unit the student ticked as covered, and
 // a unit whose marks crossed into mastery. Both are worth reporting, and the
@@ -70,7 +71,7 @@ function groupsForSubject(subject, inWeek) {
   return groups.sort((a, b) => b.latest - a.latest);
 }
 
-export function buildSummary(groups) {
+export function buildSummary(groups, papers = []) {
   const listJoin = (arr) =>
     arr.length <= 2 ? arr.join(' and ') : `${arr.slice(0, -1).join(', ')}, and ${arr[arr.length - 1]}`;
   const nameOf = (g) => (g.wholeTopic ? g.topicName : g.subtopicName);
@@ -81,8 +82,28 @@ export function buildSummary(groups) {
   const parts = [];
   if (mastered.length) parts.push(`mastered ${listJoin(mastered)}`);
   if (covered.length) parts.push(`covered ${listJoin(covered)}`);
+  if (papers.length) {
+    parts.push(`sat ${papers.length === 1 ? papers[0].label : `${papers.length} papers`}`);
+  }
   if (!parts.length) return 'Nothing completed here yet this week.';
   return `You ${parts.join(', and ')}.`;
+}
+
+// Papers sat during the week are work too, and the report was silent about
+// them. Each carries the session and year it was sat and the specification
+// code, so a row identifies the paper without opening the subject.
+function papersForSubject(subject, inWeek) {
+  return (subject.pastPapers || [])
+    .filter(pp => pp.uploadedAt && inWeek(pp.uploadedAt))
+    .map(pp => ({
+      id: pp.id,
+      label: pastPaperLabel(pp),
+      paper: pp.paper,
+      code: subject.category === 'study' ? getPaperCode(subject.level, subject.name, subject.board) : null,
+      mistakes: (pp.mistakes || []).length,
+      at: new Date(pp.uploadedAt).getTime(),
+    }))
+    .sort((a, b) => b.at - a.at);
 }
 
 export function buildWeeklyReport(subjects, weekOffset) {
@@ -92,10 +113,12 @@ export function buildWeeklyReport(subjects, weekOffset) {
     return d >= weekStart && d < weekEnd;
   };
 
+  const latestOf = (r) => Math.max(r.groups[0]?.latest || 0, r.papers[0]?.at || 0);
+
   const reports = subjects
-    .map(s => ({ subject: s, groups: groupsForSubject(s, inWeek) }))
-    .filter(r => r.groups.length > 0)
-    .sort((a, b) => b.groups[0].latest - a.groups[0].latest);
+    .map(s => ({ subject: s, groups: groupsForSubject(s, inWeek), papers: papersForSubject(s, inWeek) }))
+    .filter(r => r.groups.length > 0 || r.papers.length > 0)
+    .sort((a, b) => latestOf(b) - latestOf(a));
 
   return {
     weekStart,
@@ -103,5 +126,6 @@ export function buildWeeklyReport(subjects, weekOffset) {
     reports,
     completedCount: reports.reduce((sum, r) => sum + r.groups.length, 0),
     masteredCount: reports.reduce((sum, r) => sum + r.groups.filter(g => g.kind === 'mastered').length, 0),
+    paperCount: reports.reduce((sum, r) => sum + r.papers.length, 0),
   };
 }

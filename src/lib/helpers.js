@@ -23,11 +23,23 @@ export function flattenUnits(topics) {
   return topics.flatMap(t => (t.subtopics && t.subtopics.length ? t.subtopics : [t]));
 }
 
+// Completion counts two things, half each. Working through a unit and ticking
+// it off earns the first half, so a checklist covered end to end sits at 50%.
+// The marks recorded against it earn the second half, filling as the average
+// climbs towards the mastery threshold and reaching 100% when it gets there.
+export function unitCompletion(unit) {
+  if (unit.status === 'done') return 1;
+  const covered = unit.status !== 'not-started' ? 0.5 : 0;
+  const average = averageScore(unit);
+  const earned = average === null ? 0 : Math.min(1, average / MASTERY_THRESHOLD) * 0.5;
+  return Math.min(1, covered + earned);
+}
+
 export function computeProgress(topics) {
   const units = flattenUnits(topics);
   if (!units.length) return 0;
-  const done = units.filter(u => u.status === 'done').length;
-  return Math.round((done / units.length) * 100);
+  const total = units.reduce((sum, u) => sum + unitCompletion(u), 0);
+  return Math.round((total / units.length) * 100);
 }
 
 export function computeMastery(topics) {
