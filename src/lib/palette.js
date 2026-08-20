@@ -85,6 +85,8 @@ const PAPER_STEPS = {
   'Paper 2': 'ACCENT',
   'Paper 3': 'color-mix(in oklab, ACCENT, black 22%)',
   'Paper 4': 'color-mix(in oklab, ACCENT, black 42%)',
+  'Paper 5': 'color-mix(in oklab, ACCENT, white 14%)',
+  'Paper 6': 'color-mix(in oklab, ACCENT, black 32%)',
 };
 
 export function paperShade(accent, paper) {

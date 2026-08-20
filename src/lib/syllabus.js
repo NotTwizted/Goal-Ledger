@@ -204,7 +204,7 @@ export const EDEXCEL_IAL_SLUGS = {
 };
 
 export const MATHS_COMPONENTS = ['Pure', 'Mechanics', 'Statistics', 'Decision'];
-export const PAPERS = ['Paper 1', 'Paper 2', 'Paper 3', 'Paper 4'];
+export const PAPERS = ['Paper 1', 'Paper 2', 'Paper 3', 'Paper 4', 'Paper 5', 'Paper 6'];
 
 // Pre-built topic/subtopic checklists, researched per subject/level/board.
 // Coverage is intentionally limited to subjects that have been verified —
@@ -592,6 +592,69 @@ export const SEED_DATA = (() => {
     T('Polar coordinates', ['Polar coordinates and equations', 'Sketching curves', 'Area enclosed by a polar curve', 'Tangents to polar curves']),
   ];
 
+  // Practical assessment. Cambridge examines it as its own paper — Paper 3 at
+  // AS, and Paper 5 at A2 for planning and evaluation — while Edexcel
+  // International assesses it in Units 3 and 6. The skills are examined rather
+  // than merely performed, so they are worth tracking like any other topic.
+  const BIO_PRAC_IGCSE = [
+    T('Using apparatus', ['Choosing and reading measuring cylinders, thermometers and timers', 'Using a microscope', 'Preparing a temporary slide', 'Calculating magnification']),
+    T('Biological drawing', ['Drawing what is observed rather than what is expected', 'Labelling with straight, uncrossed lines', 'Adding a scale or magnification']),
+    T('Handling variables', ['Identifying independent, dependent and control variables', 'Describing how each control variable is kept constant', 'Deciding how many repeats to take']),
+    T('Standard biological tests', ['Benedict test for reducing sugars', 'Iodine test for starch', 'Biuret test for protein', 'Emulsion test for fats']),
+    T('Recording and presenting results', ['Ruled tables with headings and units', 'Plotting line graphs and bar charts', 'Calculating means and rates']),
+    T('Analysis and evaluation', ['Describing a trend in the data', 'Identifying anomalous results', 'Suggesting sources of error', 'Suggesting improvements to the method']),
+  ];
+  const BIO_PRAC_ADV = [
+    T('Microscopy and drawing', ['Preparing and staining temporary slides', 'Using an eyepiece graticule and stage micrometer', 'Calculating actual size and magnification', 'Plan diagrams and high-power detail']),
+    T('Quantitative techniques', ['Serial dilutions and standard curves', 'Using a colorimeter', 'Potometers and respirometers', 'Controlling temperature with a water bath']),
+    T('Experimental design', ['Identifying and controlling variables', 'Choosing a sensible range and interval', 'Replication and reliability', 'Assessing risk']),
+    T('Presenting data', ['Tables with the quantity and unit in the heading', 'Choosing axes and scales', 'Error bars and ranges']),
+    T('Analysis', ['Finding a rate from a tangent or gradient', 'Percentage change and percentage error', 'Judging whether a difference is significant', 'Dealing with anomalies']),
+    T('Evaluation', ['Distinguishing systematic from random error', 'Judging the limitations of the method', 'Proposing specific improvements']),
+  ];
+
+  const CHEM_PRAC_IGCSE = [
+    T('Using apparatus', ['Reading a burette, pipette and measuring cylinder', 'Using a balance and a thermometer', 'Timing a reaction']),
+    T('Separation techniques', ['Filtration and evaporation', 'Crystallisation', 'Simple and fractional distillation', 'Paper chromatography and Rf values']),
+    T('Titration', ['Technique for accurate transfer', 'Choosing and using an indicator', 'Obtaining concordant titres', 'Calculating an unknown concentration']),
+    T('Rates of reaction', ['Collecting and measuring a gas', 'Following a reaction by loss of mass', 'Timing a colour change or precipitate']),
+    T('Qualitative analysis', ['Tests for cations', 'Tests for anions', 'Tests for gases', 'Flame tests']),
+    T('Analysis and evaluation', ['Recording readings to a consistent precision', 'Identifying anomalous titres', 'Suggesting sources of error and improvements']),
+  ];
+  const CHEM_PRAC_ADV = [
+    T('Volumetric analysis', ['Preparing a standard solution', 'Accurate burette and pipette technique', 'Concordant titres and the mean titre', 'Titration calculations']),
+    T('Thermochemistry', ['Calorimetry technique', 'Temperature-time graphs and extrapolation', 'Calculating an enthalpy change from results']),
+    T('Rates', ['Initial-rate methods', 'Clock reactions', 'Following a reaction by titration or colorimetry', 'Determining order from results']),
+    T('Qualitative analysis', ['Tests for cations and anions', 'Tests for gases', 'Tests for organic functional groups']),
+    T('Organic preparation', ['Heating under reflux', 'Distilling a product', 'Purification and recrystallisation', 'Melting point as a measure of purity']),
+    T('Uncertainty and evaluation', ['Apparatus uncertainties and how they combine', 'Percentage error in a measurement', 'Systematic versus random error', 'Suggesting improvements']),
+  ];
+
+  const PHYS_PRAC_IGCSE = [
+    T('Measuring instruments', ['Rulers, protractors and set squares', 'Balances and measuring cylinders', 'Thermometers', 'Timing with a stopwatch and reducing reaction-time error']),
+    T('Electrical measurement', ['Setting up a circuit from a diagram', 'Using an ammeter and a voltmeter', 'Choosing a sensible range']),
+    T('Standard experiments', ['Density of a solid and of a liquid', 'Extension of a spring', 'Timing a pendulum', 'Reflection and refraction of light', 'Simple thermal experiments']),
+    T('Recording and graphing', ['Tables with units and consistent precision', 'Choosing scales and plotting points', 'Drawing a line of best fit', 'Finding a gradient']),
+    T('Analysis and evaluation', ['Repeating readings and averaging', 'Identifying anomalies', 'Describing sources of error', 'Suggesting improvements']),
+  ];
+  const PHYS_PRAC_ADV = [
+    T('Measurement technique', ['Vernier callipers and the micrometer screw gauge', 'Choosing an instrument for the precision needed', 'Timing many oscillations to reduce error', 'Zero errors and how to correct for them']),
+    T('Electrical experiments', ['Determining resistivity', 'Measuring EMF and internal resistance', 'Potential dividers', 'Finding the characteristic of a component']),
+    T('Mechanics experiments', ['Determining g by free fall', 'Spring constant from force and extension', 'The Young modulus of a wire']),
+    T('Graphical analysis', ['Rearranging an equation into y = mx + c', 'Taking the gradient and intercept from a graph', 'Using log graphs to find a power law']),
+    T('Uncertainties', ['Absolute, fractional and percentage uncertainty', 'Combining uncertainties through a calculation', 'Error bars and the worst acceptable line']),
+    T('Evaluation', ['Systematic versus random error', 'Judging the largest source of uncertainty', 'Proposing specific improvements']),
+  ];
+
+  // Cambridge A2 examines planning and evaluation as a paper of its own, and
+  // the skills are the same whichever science it sits under.
+  const PRAC_PLANNING = [
+    T('Planning an investigation', ['Defining the problem and the variables', 'Choosing apparatus and justifying the choice', 'Describing a method another student could follow', 'Controlling variables and assessing risk']),
+    T('Analysis of results', ['Rearranging a relationship into a straight line', 'Determining constants from gradient and intercept', 'Using logarithms for exponential and power relationships']),
+    T('Treatment of uncertainty', ['Estimating the uncertainty in each measurement', 'Propagating uncertainty through a calculation', 'Plotting error bars', 'Drawing the worst acceptable line']),
+    T('Conclusions and evaluation', ['Deciding whether the results support the hypothesis', 'Judging whether a conclusion survives the uncertainty', 'Identifying limitations and improvements']),
+  ];
+
   const BUS_IGCSE = [
     T('Understanding business activity', ['Purpose and nature of business activity', 'Classification of businesses', 'Enterprise and entrepreneurship', 'Business size and growth', 'Types of business organisation', 'Business objectives and stakeholders']),
     T('People in business', ['Motivation of employees', 'Organisational structure', 'Recruitment, selection, and training', 'Internal and external communication']),
@@ -842,36 +905,36 @@ export const SEED_DATA = (() => {
 
   return {
     'Biology': {
-      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': BIO_IGCSE_CIE } },
+      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': BIO_IGCSE_CIE, 'Paper 3': BIO_PRAC_IGCSE } },
       AS: {
-        'Cambridge (CIE)': { 'Paper 1': BIO_CIE_P1 },
-        'Edexcel International': { 'Paper 1': BIO_EDEXCEL_P1, 'Paper 2': BIO_EDEXCEL_P2 },
+        'Cambridge (CIE)': { 'Paper 1': BIO_CIE_P1, 'Paper 3': BIO_PRAC_ADV },
+        'Edexcel International': { 'Paper 1': BIO_EDEXCEL_P1, 'Paper 2': BIO_EDEXCEL_P2, 'Paper 3': BIO_PRAC_ADV },
       },
       'A Level': {
-        'Cambridge (CIE)': { 'Paper 1': BIO_CIE_P1, 'Paper 2': BIO_CIE_P2 },
-        'Edexcel International': { 'Paper 1': BIO_EDEXCEL_P1, 'Paper 2': BIO_EDEXCEL_P2, 'Paper 3': BIO_EDEXCEL_P3, 'Paper 4': BIO_EDEXCEL_P4 },
+        'Cambridge (CIE)': { 'Paper 1': BIO_CIE_P1, 'Paper 2': BIO_CIE_P2, 'Paper 3': BIO_PRAC_ADV, 'Paper 5': PRAC_PLANNING },
+        'Edexcel International': { 'Paper 1': BIO_EDEXCEL_P1, 'Paper 2': BIO_EDEXCEL_P2, 'Paper 3': BIO_EDEXCEL_P3, 'Paper 4': BIO_EDEXCEL_P4, 'Paper 5': BIO_PRAC_ADV },
       },
     },
     'Chemistry': {
-      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': CHEM_IGCSE_CIE } },
+      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': CHEM_IGCSE_CIE, 'Paper 3': CHEM_PRAC_IGCSE } },
       AS: {
-        'Cambridge (CIE)': { 'Paper 1': CHEM_CIE_P1 },
-        'Edexcel International': { 'Paper 1': CHEM_EDEXCEL_P1, 'Paper 2': CHEM_EDEXCEL_P2 },
+        'Cambridge (CIE)': { 'Paper 1': CHEM_CIE_P1, 'Paper 3': CHEM_PRAC_ADV },
+        'Edexcel International': { 'Paper 1': CHEM_EDEXCEL_P1, 'Paper 2': CHEM_EDEXCEL_P2, 'Paper 3': CHEM_PRAC_ADV },
       },
       'A Level': {
-        'Cambridge (CIE)': { 'Paper 1': CHEM_CIE_P1, 'Paper 2': CHEM_CIE_P2 },
-        'Edexcel International': { 'Paper 1': CHEM_EDEXCEL_P1, 'Paper 2': CHEM_EDEXCEL_P2, 'Paper 3': CHEM_EDEXCEL_P3, 'Paper 4': CHEM_EDEXCEL_P4 },
+        'Cambridge (CIE)': { 'Paper 1': CHEM_CIE_P1, 'Paper 2': CHEM_CIE_P2, 'Paper 3': CHEM_PRAC_ADV, 'Paper 5': PRAC_PLANNING },
+        'Edexcel International': { 'Paper 1': CHEM_EDEXCEL_P1, 'Paper 2': CHEM_EDEXCEL_P2, 'Paper 3': CHEM_EDEXCEL_P3, 'Paper 4': CHEM_EDEXCEL_P4, 'Paper 5': CHEM_PRAC_ADV },
       },
     },
     'Physics': {
-      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': PHYS_IGCSE_CIE } },
+      IGCSE: { 'Cambridge (CIE)': { 'Paper 1': PHYS_IGCSE_CIE, 'Paper 3': PHYS_PRAC_IGCSE } },
       AS: {
-        'Cambridge (CIE)': { 'Paper 1': PHYS_CIE_P1 },
-        'Edexcel International': { 'Paper 1': PHYS_EDEXCEL_P1, 'Paper 2': PHYS_EDEXCEL_P2 },
+        'Cambridge (CIE)': { 'Paper 1': PHYS_CIE_P1, 'Paper 3': PHYS_PRAC_ADV },
+        'Edexcel International': { 'Paper 1': PHYS_EDEXCEL_P1, 'Paper 2': PHYS_EDEXCEL_P2, 'Paper 3': PHYS_PRAC_ADV },
       },
       'A Level': {
-        'Cambridge (CIE)': { 'Paper 1': PHYS_CIE_P1, 'Paper 2': PHYS_CIE_P2 },
-        'Edexcel International': { 'Paper 1': PHYS_EDEXCEL_P1, 'Paper 2': PHYS_EDEXCEL_P2, 'Paper 3': PHYS_EDEXCEL_P3, 'Paper 4': PHYS_EDEXCEL_P4 },
+        'Cambridge (CIE)': { 'Paper 1': PHYS_CIE_P1, 'Paper 2': PHYS_CIE_P2, 'Paper 3': PHYS_PRAC_ADV, 'Paper 5': PRAC_PLANNING },
+        'Edexcel International': { 'Paper 1': PHYS_EDEXCEL_P1, 'Paper 2': PHYS_EDEXCEL_P2, 'Paper 3': PHYS_EDEXCEL_P3, 'Paper 4': PHYS_EDEXCEL_P4, 'Paper 5': PHYS_PRAC_ADV },
       },
     },
     'Maths': {
