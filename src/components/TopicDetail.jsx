@@ -11,7 +11,7 @@ import ConfirmDialog from './ConfirmDialog';
 export default function TopicDetail({ subject, topic, accent, percent }) {
   const { subjects, updateSubjects, editing } = useLedger();
   const [draft, setDraft] = useState('');
-  const [testLoading, setTestLoading] = useState(false);
+  const [testProgress, setTestProgress] = useState(null); // {done, total} while reading
   const [testError, setTestError] = useState('');
   const [pendingSubtopic, setPendingSubtopic] = useState(null);
   const [openScores, setOpenScores] = useState(null);
@@ -25,19 +25,33 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
     setDraft('');
   };
 
-  const uploadUnitTest = async (file) => {
-    if (!file) return;
+  // Read in turn, saved in one write, so a file that fails takes only itself
+  // down and each test still contributes its own mark.
+  const uploadUnitTests = async (files) => {
+    if (!files.length) return;
     setTestError('');
-    setTestLoading(true);
-    try {
-      const record = await extractUnitTest(file, topic.name, (topic.subtopics || []).map(st => st.name));
-      updateSubjects(mutate.addUnitTestRecord(subjects, subject.id, topic.id, record));
-    } catch (e) {
-      setTestError(e.message && !e.message.startsWith('Unexpected')
-        ? e.message
-        : "Couldn't read that unit test — try a clearer photo or PDF.");
-    } finally {
-      setTestLoading(false);
+    setTestProgress({ done: 0, total: files.length });
+
+    const subtopicNames = (topic.subtopics || []).map(st => st.name);
+    let next = subjects;
+    const failed = [];
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const record = await extractUnitTest(files[i], topic.name, subtopicNames);
+        next = mutate.addUnitTestRecord(next, subject.id, topic.id, record);
+      } catch (e) {
+        failed.push(files[i].name);
+      }
+      setTestProgress({ done: i + 1, total: files.length });
+    }
+
+    if (next !== subjects) updateSubjects(next);
+    setTestProgress(null);
+    if (failed.length) {
+      setTestError(failed.length === files.length
+        ? `Couldn't read ${failed.length === 1 ? 'that test' : 'any of those tests'} — try a clearer photo or PDF.`
+        : `Added ${files.length - failed.length} of ${files.length}. Couldn't read: ${failed.join(', ')}.`);
     }
   };
 
@@ -142,16 +156,18 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
       {editing && hasSubtopics && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100">
           <label data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer">
-            {testLoading ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
-            {testLoading ? 'Analyzing…' : 'Upload unit test'}
+            {testProgress ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+            {testProgress
+              ? (testProgress.total > 1 ? `Reading ${testProgress.done} of ${testProgress.total}…` : 'Analyzing…')
+              : 'Upload unit tests'}
             <input
               type="file"
               accept="image/*,application/pdf"
+              multiple
               className="hidden"
-              disabled={testLoading}
+              disabled={!!testProgress}
               onChange={e => {
-                const file = e.target.files && e.target.files[0];
-                uploadUnitTest(file);
+                uploadUnitTests(Array.from(e.target.files || []));
                 e.target.value = '';
               }}
             />

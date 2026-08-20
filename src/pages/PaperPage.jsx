@@ -13,7 +13,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 // rather than replacing it, so moving between topics is one click.
 export default function PaperPage({ subject, paper }) {
   const { subjects, updateSubjects, editing } = useLedger();
-  const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null); // {done, total} while reading
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [pendingTopic, setPendingTopic] = useState(null);
@@ -32,19 +32,35 @@ export default function PaperPage({ subject, paper }) {
     return Math.round((t.subtopics.filter(st => st.status === 'done').length / t.subtopics.length) * 100);
   };
 
-  const uploadPastPaper = async (file) => {
-    if (!file) return;
+  // Files are read one at a time rather than all at once — a dozen papers
+  // fired off together would be rate limited — and everything that succeeded
+  // is saved in a single write at the end, so one unreadable file in the
+  // middle costs only itself.
+  const uploadPastPapers = async (files) => {
+    if (!files.length) return;
     setError('');
-    setLoading(true);
-    try {
-      const record = await extractPastPaper(file, paper, paperTopics.map(t => t.name));
-      updateSubjects(mutate.addPastPaperRecord(subjects, subject.id, paper, record));
-    } catch (e) {
-      setError(e.message && !e.message.startsWith('Unexpected')
-        ? e.message
-        : "Couldn't read that past paper — try a clearer photo or PDF.");
-    } finally {
-      setLoading(false);
+    setUploadProgress({ done: 0, total: files.length });
+
+    const topicNames = paperTopics.map(t => t.name);
+    let next = subjects;
+    const failed = [];
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const record = await extractPastPaper(files[i], paper, topicNames);
+        next = mutate.addPastPaperRecord(next, subject.id, paper, record);
+      } catch (e) {
+        failed.push(files[i].name);
+      }
+      setUploadProgress({ done: i + 1, total: files.length });
+    }
+
+    if (next !== subjects) updateSubjects(next);
+    setUploadProgress(null);
+    if (failed.length) {
+      setError(failed.length === files.length
+        ? `Couldn't read ${failed.length === 1 ? 'that paper' : 'any of those papers'} — try a clearer photo or PDF.`
+        : `Added ${files.length - failed.length} of ${files.length}. Couldn't read: ${failed.join(', ')}.`);
     }
   };
 
@@ -76,18 +92,21 @@ export default function PaperPage({ subject, paper }) {
         {editing && (
           <label
             data-tappable
-            title="Upload a marked past paper"
+            title="Upload marked past papers — several at once is fine"
             className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer border border-stone-300 rounded-lg px-3 py-3"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+            {uploadProgress ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+            {uploadProgress && uploadProgress.total > 1 && (
+              <span className="font-mono text-[10px]">{uploadProgress.done}/{uploadProgress.total}</span>
+            )}
             <input
               type="file"
               accept="image/*,application/pdf"
+              multiple
               className="hidden"
-              disabled={loading}
+              disabled={!!uploadProgress}
               onChange={e => {
-                const file = e.target.files && e.target.files[0];
-                uploadPastPaper(file);
+                uploadPastPapers(Array.from(e.target.files || []));
                 e.target.value = '';
               }}
             />
