@@ -1,7 +1,7 @@
 import {
-  STATUS_ORDER,
   averageScore,
   clampPercent,
+  isMastered,
   findTextMatch,
   masteryFromScore,
   newUnit,
@@ -30,13 +30,27 @@ const mapTopic = (subject, topicId, fn) => ({
   topics: subject.topics.map(t => (t.id === topicId ? fn(t) : t)),
 });
 
-const advanceStatus = (unit) => {
-  const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(unit.status) + 1) % STATUS_ORDER.length];
-  return {
-    ...unit,
-    status: nextStatus,
-    completedAt: nextStatus === 'done' ? new Date().toISOString() : null,
-  };
+// Ticking says "I have covered this" and turns the circle amber. It cannot
+// reach green — that belongs to the marks, and is applied by withMastery below.
+const toggleCovered = (unit) => {
+  if (isMastered(unit)) return unit;
+  const covered = unit.status !== 'not-started';
+  return covered
+    ? { ...unit, status: 'not-started', coveredAt: null }
+    : { ...unit, status: 'in-progress', coveredAt: new Date().toISOString() };
+};
+
+// Green follows the average, both ways: crossing the threshold marks a unit
+// mastered and stamps when; falling back below returns it to however far the
+// student had got by hand.
+const withMastery = (unit) => {
+  if (isMastered(unit)) {
+    return unit.status === 'done'
+      ? unit
+      : { ...unit, status: 'done', completedAt: new Date().toISOString() };
+  }
+  if (unit.status !== 'done') return unit;
+  return { ...unit, status: unit.coveredAt ? 'in-progress' : 'not-started', completedAt: null };
 };
 
 // scorePercent stays written as the average so progress, sorting and the
@@ -44,7 +58,11 @@ const advanceStatus = (unit) => {
 const withScores = (unit, scores) => {
   const next = { ...unit, scores };
   const average = averageScore(next);
-  return { ...next, scorePercent: average, mastery: average === null ? 0 : masteryFromScore(average) };
+  return withMastery({
+    ...next,
+    scorePercent: average,
+    mastery: average === null ? 0 : masteryFromScore(average),
+  });
 };
 
 const addScore = (unit, percent, label) => {
@@ -78,7 +96,7 @@ export function deleteTopic(subjects, subjectId, topicId) {
 }
 
 export function cycleTopicStatus(subjects, subjectId, topicId) {
-  return mapSubject(subjects, subjectId, s => mapTopic(s, topicId, advanceStatus));
+  return mapSubject(subjects, subjectId, s => mapTopic(s, topicId, toggleCovered));
 }
 
 const mapUnit = (subject, topicId, subtopicId, fn) =>
@@ -121,7 +139,7 @@ export function cycleSubtopicStatus(subjects, subjectId, topicId, subtopicId) {
   return mapSubject(subjects, subjectId, s =>
     mapTopic(s, topicId, t => ({
       ...t,
-      subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? advanceStatus(st) : st)),
+      subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? toggleCovered(st) : st)),
     })));
 }
 

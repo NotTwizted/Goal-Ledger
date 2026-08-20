@@ -3,8 +3,8 @@ import { Circle, CircleDot, CheckCircle2 } from 'lucide-react';
 export const STATUS_ORDER = ['not-started', 'in-progress', 'done'];
 export const STATUS_META = {
   'not-started': { label: 'Not started', icon: Circle, ring: 'text-stone-400' },
-  'in-progress': { label: 'In progress', icon: CircleDot, ring: 'text-amber-600' },
-  'done': { label: 'Done', icon: CheckCircle2, ring: 'text-emerald-700' },
+  'in-progress': { label: 'Covered — mastered at 90%', icon: CircleDot, ring: 'text-amber-600' },
+  'done': { label: 'Mastered', icon: CheckCircle2, ring: 'text-emerald-700' },
 };
 
 export const MASTERY_LEVELS = [
@@ -126,6 +126,15 @@ export function unitScores(unit) {
   const legacy = unit.scorePercent;
   if (legacy === null || legacy === undefined || legacy === '') return [];
   return [{ id: 'legacy', percent: Number(legacy), label: 'Recorded' }];
+}
+
+// Green is earned, not clicked: a unit counts as mastered once the marks
+// recorded against it average this high.
+export const MASTERY_THRESHOLD = 90;
+
+export function isMastered(unit) {
+  const average = averageScore(unit);
+  return average !== null && average >= MASTERY_THRESHOLD;
 }
 
 export function averageScore(unit) {

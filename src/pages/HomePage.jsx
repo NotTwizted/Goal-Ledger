@@ -9,7 +9,7 @@ import { subjectAccent } from '../lib/palette';
 // header, which is on every page rather than only this one.
 export default function HomePage() {
   const { subjects, weekOffset, setWeekOffset, notifPermission } = useLedger();
-  const { weekStart, weekEnd, reports, completedCount } = buildWeeklyReport(subjects, weekOffset);
+  const { weekStart, weekEnd, reports, completedCount, masteredCount } = buildWeeklyReport(subjects, weekOffset);
 
   return (
     <div className="p-6">
@@ -26,7 +26,7 @@ export default function HomePage() {
             {formatShortDate(weekStart)} – {formatShortDate(new Date(weekEnd.getTime() - 86400000))}
           </p>
           <p className="text-[10px] text-stone-400 font-mono">
-            {weekOffset === 0 ? 'This week · ' : ''}{completedCount} item{completedCount !== 1 ? 's' : ''} completed
+            {weekOffset === 0 ? 'This week · ' : ''}{masteredCount} mastered · {completedCount - masteredCount} covered
           </p>
         </div>
         <button

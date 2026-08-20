@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
-import { STATUS_META } from '../lib/helpers';
+import { MASTERY_THRESHOLD, STATUS_META, averageScore, isMastered } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
@@ -87,7 +87,9 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => updateSubjects(mutate.cycleSubtopicStatus(subjects, subject.id, topic.id, st.id))}
-                    title={STATUS_META[st.status].label}
+                    title={isMastered(st)
+                      ? `Mastered — averaging ${averageScore(st)}%`
+                      : `${STATUS_META[st.status].label} · green at ${MASTERY_THRESHOLD}%`}
                     className={`shrink-0 ${STATUS_META[st.status].ring}`}
                   >
                     <SubIcon size={17} />

@@ -1,4 +1,4 @@
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, CircleDot } from 'lucide-react';
 import { formatDateTime, formatShortDate } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import { buildWeeklyReport } from '../lib/report';
@@ -22,14 +22,21 @@ export default function ReportDetailPage({ subjectId }) {
         <div className="flex flex-col gap-3">
           {report.groups.map(g => (
             <div key={g.key} className="flex items-start gap-2 p-3 bg-white border border-stone-300 rounded-lg">
-              <CheckCircle2 size={16} className="shrink-0 text-emerald-700 mt-0.5" />
+              {g.kind === 'mastered'
+                ? <CheckCircle2 size={16} className="shrink-0 text-emerald-700 mt-0.5" />
+                : <CircleDot size={16} className="shrink-0 text-amber-600 mt-0.5" />}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-sm font-medium text-stone-900">
                     {g.wholeTopic ? g.topicName : g.subtopicName}
                   </p>
+                  <span className={`px-1.5 py-0.5 rounded border text-[9px] font-mono tracking-wider ${
+                    g.kind === 'mastered' ? 'border-emerald-500 text-emerald-700' : 'border-amber-500 text-amber-700'
+                  }`}>
+                    {g.kind === 'mastered' ? 'MASTERED' : 'COVERED'}
+                  </span>
                   {g.wholeTopic && g.hadSubtopics && (
-                    <span className="px-1.5 py-0.5 rounded border border-emerald-500 text-emerald-700 text-[9px] font-mono tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded border border-stone-300 text-stone-500 text-[9px] font-mono tracking-wider">
                       FULL TOPIC
                     </span>
                   )}
