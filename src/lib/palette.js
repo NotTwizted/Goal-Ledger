@@ -1,25 +1,30 @@
 // Each subject owns a hue, and everything belonging to it — its card, its
 // progress bars, its papers, its topic cards — is drawn in that hue.
 //
-// Deep tones only — the 700/800 end of each family. Nothing pastel, nothing
-// fluorescent: the brightness is what read as childish, not the hue, so a
-// purple or a pink is fine here where a lilac or a hot magenta was not.
+// Deep tones only, and nothing from the purple-to-rose arc. Brightness was
+// what made earlier sets look childish and pinks what made them look twee,
+// so the palette is bounded by lightness and by hue rather than by taste:
+// nothing lighter than 0.55, nothing more saturated than 0.14, and the
+// 282-8 degree arc excluded outright.
+//
+// The header's two buttons keep the indigo and amber they have always had,
+// and these are chosen around them — every pair at least 13 apart, none
+// within 14 of a header button, against the 12.1 of the orange that used to
+// collide with Goals.
+//
+// Seven slots. The binding constraint is not taste but the header: indigo
+// and amber sit in the blue-violet and orange sectors, so navy, royal blue,
+// red, rust and aubergine are all unusable, whatever they look like.
 const SUBJECT_ACCENTS = [
-  '#0369a1', // steel blue
-  '#15803d', // green
-  '#7f1d1d', // maroon
-  '#86198f', // plum
-  '#57534e', // stone
-  '#be185d', // deep pink
+  '#8d2841', // wine
+  '#007f84', // teal
+  '#6d7700', // olive
+  '#6163bb', // slate indigo
+  '#115800', // dark green
+  '#583408', // bronze
+  '#004655', // deep petrol
 ];
 
-// The header's two buttons keep the indigo and amber they have always had,
-// and the subject hues are chosen around them: every pair at least 13 apart
-// and none within 14 of a header button — against the 12.1 of the orange
-// that used to collide with the Goals button. Allowing
-// deep purples and pinks back is what buys the extra slots: excluding whole
-// families cost two colours, and depth turned out to be the property that
-// mattered rather than which part of the wheel they came from.
 const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
