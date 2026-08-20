@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, BellOff, CalendarCheck, Check, ChevronLeft, GraduationCap, Lock, Target } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
-import { assignMissingAccents, subjectAccent } from './lib/palette';
+import { assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
+import HeaderMenu from './components/HeaderMenu';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import SubjectPage from './pages/SubjectPage';
@@ -503,53 +504,31 @@ export default function StudyTracker() {
             { key: 'general', label: 'Goals', Icon: Target },
           ].map(({ key, label, Icon }) => {
             const active = route.name === 'dashboard' && route.category === key;
+            const hue = categoryAccent(key);
             return (
               <button
                 key={key}
                 onClick={() => navigate(paths.category(key))}
                 title={key === 'study' ? 'Studies' : 'General goals'}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border ${
-                  active ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300'
-                }`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border font-medium"
+                style={{
+                  color: active ? '#ffffff' : hue,
+                  borderColor: hue,
+                  backgroundColor: active ? hue : `${hue}12`,
+                }}
               >
                 <Icon size={13} /> <span className="hidden sm:inline">{label}</span>
               </button>
             );
           })}
-          <button
-            onClick={toggleReminders}
-            title={
-              notifPermission === 'denied'
-                ? 'Reminders are blocked in your browser settings'
-                : notifPermission === 'default'
-                  ? 'Turn on deadline reminders'
-                  : remindersOn ? 'Deadline reminders are on' : 'Deadline reminders are off'
-            }
-            className={`flex items-center px-2.5 py-1.5 text-xs rounded border ${
-              remindersOn && notifPermission === 'granted'
-                ? 'bg-stone-800 text-white border-stone-800'
-                : 'text-stone-600 border-stone-300'
-            }`}
-          >
-            {remindersOn && notifPermission === 'granted' ? <Bell size={13} /> : <BellOff size={13} />}
-          </button>
-          <button
-            onClick={() => setEditing(v => !v)}
-            title={editing ? 'Lock the ledger' : 'Unlock to add, import, or delete'}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border ${
-              editing
-                ? 'bg-stone-800 text-white border-stone-800'
-                : 'text-stone-500 border-stone-300'
-            }`}
-          >
-            {editing ? <><Check size={13} /> Done</> : <><Lock size={13} /> Edit</>}
-          </button>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="px-2.5 py-1.5 text-xs text-stone-500 border border-stone-300 rounded"
-          >
-            Sign out
-          </button>
+          <HeaderMenu
+            editing={editing}
+            setEditing={setEditing}
+            remindersOn={remindersOn}
+            notifPermission={notifPermission}
+            toggleReminders={toggleReminders}
+            onSignOut={() => supabase.auth.signOut()}
+          />
           </div>
         </div>
 
