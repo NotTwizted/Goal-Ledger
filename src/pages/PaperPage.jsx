@@ -46,7 +46,9 @@ export default function PaperPage({ subject, paper }) {
         const record = await extractPastPaper(files[i], paper, topicNames);
         next = mutate.addPastPaperRecord(next, subject.id, paper, record);
       } catch (e) {
-        failed.push(files[i].name);
+        // Keep what actually went wrong — a swallowed message is why every
+        // failure looked like a blurry scan.
+        failed.push({ name: files[i].name, reason: e.message });
       }
       setUploadProgress({ done: i + 1, total: files.length });
     }
@@ -54,9 +56,10 @@ export default function PaperPage({ subject, paper }) {
     if (next !== subjects) updateSubjects(next);
     setUploadProgress(null);
     if (failed.length) {
+      const reasons = [...new Set(failed.map(f => f.reason))].join(' ');
       setError(failed.length === files.length
-        ? `Couldn't read ${failed.length === 1 ? 'that paper' : 'any of those papers'} — try a clearer photo or PDF.`
-        : `Added ${files.length - failed.length} of ${files.length}. Couldn't read: ${failed.join(', ')}.`);
+        ? reasons
+        : `Added ${files.length - failed.length} of ${files.length}. ${failed.map(f => f.name).join(', ')} failed: ${reasons}`);
     }
   };
 

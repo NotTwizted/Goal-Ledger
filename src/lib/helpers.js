@@ -94,8 +94,11 @@ export function extractJson(text) {
   }
 }
 
+// Goes through this site's own /api/extract, which holds the API key. Calling
+// Anthropic straight from the browser fails with "x-api-key header is
+// required", and adding the key here would publish it to every visitor.
 export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -112,7 +115,16 @@ export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens
       ],
     }),
   });
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    // A non-JSON body means the request never reached the model — most often
+    // the file was too large for the request to go through at all.
+    throw new Error(response.status === 413
+      ? 'That file is too large to send. Try a smaller PDF, or split it.'
+      : `The server returned no readable response (${response.status}).`);
+  }
   if (!response.ok) {
     throw new Error(data?.error?.message || `Request failed (${response.status})`);
   }

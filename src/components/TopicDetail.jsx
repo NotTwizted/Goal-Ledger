@@ -42,7 +42,7 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
         const record = await extractUnitTest(files[i], topic.name, subtopicNames);
         next = mutate.addUnitTestRecord(next, subject.id, topic.id, record);
       } catch (e) {
-        failed.push(files[i].name);
+        failed.push({ name: files[i].name, reason: e.message });
       }
       setTestProgress({ done: i + 1, total: files.length });
     }
@@ -50,9 +50,10 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
     if (next !== subjects) updateSubjects(next);
     setTestProgress(null);
     if (failed.length) {
+      const reasons = [...new Set(failed.map(f => f.reason))].join(' ');
       setTestError(failed.length === files.length
-        ? `Couldn't read ${failed.length === 1 ? 'that test' : 'any of those tests'} — try a clearer photo or PDF.`
-        : `Added ${files.length - failed.length} of ${files.length}. Couldn't read: ${failed.join(', ')}.`);
+        ? reasons
+        : `Added ${files.length - failed.length} of ${files.length}. ${failed.map(f => f.name).join(', ')} failed: ${reasons}`);
     }
   };
 

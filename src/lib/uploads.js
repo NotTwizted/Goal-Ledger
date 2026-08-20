@@ -1,6 +1,18 @@
 import { callClaudeWithFile, inferMediaType, uid } from './helpers';
 
+// Vercel caps a serverless request body at 4.5MB, and base64 inflates a file
+// by about a third, so anything past roughly 3MB cannot be sent at all. Saying
+// so here is clearer than letting the request fail on the way out.
+const MAX_FILE_BYTES = 3 * 1024 * 1024;
+
 async function fileToContentBlock(file) {
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error(
+      `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB. The limit is 3MB — `
+      + 'split the PDF, or export it at a lower quality.'
+    );
+  }
+
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result.split(',')[1]);
