@@ -76,22 +76,25 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
         <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: accent }} />
       </div>
 
-      {!hasSubtopics && (
-        <div className="mb-4">
+      {/* The topic carries its own marks — what the papers said about it as a
+          whole — alongside the per-subtopic detail below. */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          {hasSubtopics && <span className="text-[11px] text-stone-500">Whole topic</span>}
           <ScoreSummary
             unit={topic}
             open={openScores === topic.id}
             onToggle={() => setOpenScores(id => (id === topic.id ? null : topic.id))}
           />
-          {openScores === topic.id && (
-            <ScorePanel
-              unit={topic}
-              onAdd={v => updateSubjects(mutate.addUnitScore(subjects, subject.id, topic.id, null, v))}
-              onRemove={id => updateSubjects(mutate.removeUnitScore(subjects, subject.id, topic.id, null, id))}
-            />
-          )}
         </div>
-      )}
+        {openScores === topic.id && (
+          <ScorePanel
+            unit={topic}
+            onAdd={v => updateSubjects(mutate.addUnitScore(subjects, subject.id, topic.id, null, v))}
+            onRemove={id => updateSubjects(mutate.removeUnitScore(subjects, subject.id, topic.id, null, id))}
+          />
+        )}
+      </div>
 
       {hasSubtopics && (
         <div className="flex flex-col divide-y divide-stone-100 mb-3">

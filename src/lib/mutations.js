@@ -257,44 +257,55 @@ function tallyQuestions(questions, resolve) {
   return tally;
 }
 
+// Whether a question belongs to this topic at all: by naming one of its
+// subtopics, or by naming the topic itself.
+const questionHitsTopic = (q, topic) => {
+  const labels = [q.subtopic, q.topic].filter(Boolean);
+  if (!labels.length) return false;
+  if ((topic.subtopics || []).length && labels.some(l => findTextMatch(l, topic.subtopics))) return true;
+  const name = normText(topic.name);
+  return labels.some(l => {
+    const label = normText(l);
+    return label === name || label.includes(name) || name.includes(label);
+  });
+};
+
+const subtopicOf = (q, topic) =>
+  ((q.subtopic && findTextMatch(q.subtopic, topic.subtopics)?.id)
+    || (q.topic && findTextMatch(q.topic, topic.subtopics)?.id)
+    || null);
+
+// A paper leaves two kinds of mark on a topic: one on each subtopic it tested,
+// and one on the topic as a whole, taken over every question that belonged to
+// it. The second is what makes a topic's mastery move with the paper — and it
+// catches questions labelled only with the topic, which used to score nothing
+// at all on a topic that had subtopics.
+function applyPaperToTopic(topic, questions, label) {
+  const hasSubtopics = (topic.subtopics || []).length > 0;
+
+  const topicMarks = tallyQuestions(questions, q => (questionHitsTopic(q, topic) ? topic.id : null)).get(topic.id);
+  let next = topicMarks ? withPaperMarks(topic, topicMarks.scored, topicMarks.available, label) : topic;
+
+  if (!hasSubtopics) return next;
+
+  const perSubtopic = tallyQuestions(questions, q => subtopicOf(q, topic));
+  if (!perSubtopic.size) return next;
+
+  return {
+    ...next,
+    subtopics: next.subtopics.map(st => {
+      const marks = perSubtopic.get(st.id);
+      return marks ? withPaperMarks(st, marks.scored, marks.available, label) : st;
+    }),
+  };
+}
+
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
     const questions = questionsOf(record);
-
-    const topics = s.topics.map(t => {
-      if ((t.paper || 'Paper 1') !== paper) return t;
-      const hasSubtopics = t.subtopics && t.subtopics.length > 0;
-
-      // A question reaches a subtopic by its own subtopic label first, then by
-      // its topic label, which is all the older records carry.
-      const tally = tallyQuestions(questions, q => {
-        if (hasSubtopics) {
-          const match = (q.subtopic && findTextMatch(q.subtopic, t.subtopics))
-            || (q.topic && findTextMatch(q.topic, t.subtopics));
-          return match?.id || null;
-        }
-        const label_ = q.topic || q.subtopic;
-        if (!label_) return null;
-        const a = normText(label_);
-        const b = normText(t.name);
-        return (a === b || a.includes(b) || b.includes(a)) ? t.id : null;
-      });
-      if (!tally.size) return t;
-
-      if (!hasSubtopics) {
-        const { scored, available } = tally.get(t.id);
-        return withPaperMarks(t, scored, available, label);
-      }
-      return {
-        ...t,
-        subtopics: t.subtopics.map(st => {
-          const marks = tally.get(st.id);
-          return marks ? withPaperMarks(st, marks.scored, marks.available, label) : st;
-        }),
-      };
-    });
-
+    const topics = s.topics.map(t =>
+      ((t.paper || 'Paper 1') === paper ? applyPaperToTopic(t, questions, label) : t));
     return { ...s, topics, pastPapers: [...(s.pastPapers || []), record] };
   });
 }
@@ -308,21 +319,10 @@ export function deletePastPaper(subjects, subjectId, pastPaperId) {
 
 export function addUnitTestRecord(subjects, subjectId, topicId, record) {
   return mapSubject(subjects, subjectId, s =>
-    mapTopic(s, topicId, t => {
-      const subtopics = t.subtopics || [];
-      const tally = tallyQuestions(
-        questionsOf({ questions: record.details }),
-        q => findTextMatch(q.subtopic, subtopics)?.id || null
-      );
-      return {
-        ...t,
-        subtopics: subtopics.map(st => {
-          const marks = tally.get(st.id);
-          return marks ? withPaperMarks(st, marks.scored, marks.available, 'Unit test') : st;
-        }),
-        unitTests: [...(t.unitTests || []), record],
-      };
-    }));
+    mapTopic(s, topicId, t => ({
+      ...applyPaperToTopic(t, questionsOf({ questions: record.details }), 'Unit test'),
+      unitTests: [...(t.unitTests || []), record],
+    })));
 }
 
 export function deleteSubject(subjects, subjectId) {
