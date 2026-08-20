@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarCheck, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
-import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
+import { daysUntil, pastPaperLabel, subjectLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
 import { assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
@@ -426,7 +426,7 @@ export default function StudyTracker() {
         return {
           back: routeSubject ? paths.category(routeSubject.category) : paths.home(),
           icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : null,
-          title: routeSubject ? `${routeSubject.name}${mathsComponentTag(routeSubject)}` : 'Subject',
+          title: routeSubject ? subjectLabel(routeSubject) : 'Subject',
         };
       case 'paper':
         return { back: paths.subject(route.subjectId), icon: null, title: route.paper };

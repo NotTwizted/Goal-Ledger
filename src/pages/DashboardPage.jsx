@@ -5,7 +5,7 @@ import {
   computeMastery,
   computeProgress,
   daysUntil,
-  mathsComponentTag,
+  subjectLabel,
   uid,
 } from '../lib/helpers';
 import { LEVELS, MATHS_COMPONENTS, OTHER, SUBJECT_BOARDS, getPaperCode } from '../lib/syllabus';
@@ -300,7 +300,7 @@ export default function DashboardPage({ category }) {
                 {isStudy
                   ? <GraduationCap size={14} className="shrink-0" style={{ color: accent }} />
                   : <Target size={14} className="shrink-0" style={{ color: accent }} />}
-                <h2 className="font-serif text-lg text-stone-900 flex-1 truncate">{s.name}{mathsComponentTag(s)}</h2>
+                <h2 className="font-serif text-lg text-stone-900 flex-1 truncate">{subjectLabel(s)}</h2>
                 {code && (
                   <span className="shrink-0 font-mono text-[10px] text-stone-400 border border-stone-300 rounded px-1 py-0.5">
                     {code}

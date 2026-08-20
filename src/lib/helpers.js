@@ -226,12 +226,14 @@ export function pastPaperLabel(pp) {
   return pp.fileName;
 }
 
-export function mathsComponentTag(s) {
-  if (s.name !== 'Maths' || !Array.isArray(s.components)) return '';
-  const tags = [];
-  if (s.components.includes('Statistics')) tags.push('Statistics');
-  if (s.components.includes('Mechanics')) tags.push('Mechanics');
-  return tags.length ? ` (${tags.join(', ')})` : '';
+// A Maths subject is really its component: someone taking Mechanics thinks of
+// the subject as Mechanics, not as Maths with a qualifier. Pure is in every
+// syllabus, so on its own it adds nothing and the subject stays "Maths".
+export function subjectLabel(s) {
+  if (!s) return '';
+  if (s.name !== 'Maths' || !Array.isArray(s.components)) return s.name;
+  const named = s.components.filter(c => c === 'Statistics' || c === 'Mechanics');
+  return named.length ? named.join(' & ') : s.name;
 }
 
 export function daysUntil(dateStr) {
