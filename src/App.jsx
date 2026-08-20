@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarCheck, Check, ChevronLeft, GraduationCap, Lock, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
-import { subjectAccent } from './lib/palette';
+import { assignMissingAccents, subjectAccent } from './lib/palette';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import SubjectPage from './pages/SubjectPage';
@@ -248,6 +248,17 @@ export default function StudyTracker() {
     setSubjects(next);
     persist(next);
   }, [persist]);
+
+  // Subjects made before colours existed have none, so give each a distinct one
+  // and save it. Once per session, and only when something is actually missing.
+  const accentsBackfilled = useRef(false);
+  useEffect(() => {
+    if (!loaded || !user || accentsBackfilled.current) return;
+    const next = assignMissingAccents(subjects);
+    if (next === subjects) return;
+    accentsBackfilled.current = true;
+    updateSubjects(next);
+  }, [loaded, user, subjects, updateSubjects]);
 
   const ledger = useMemo(
     () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, requestNotificationPermission }),

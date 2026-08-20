@@ -17,6 +17,10 @@ const SUBJECT_ACCENTS = [
   '#008300', // green
   '#4a3aa7', // violet
   '#e34948', // red
+  '#0891b2', // cyan
+  '#9333ea', // purple
+  '#65a30d', // lime
+  '#92400e', // brown
 ];
 
 const CATEGORY_ACCENTS = {
@@ -24,36 +28,46 @@ const CATEGORY_ACCENTS = {
   general: '#b45309',
 };
 
-function hashToSlot(id) {
-  let hash = 0;
-  for (let i = 0; i < (id || '').length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return SUBJECT_ACCENTS[hash % SUBJECT_ACCENTS.length];
+function accentCounts(subjects) {
+  const counts = new Map(SUBJECT_ACCENTS.map(hex => [hex, 0]));
+  subjects.forEach(s => {
+    if (counts.has(s.accent)) counts.set(s.accent, counts.get(s.accent) + 1);
+  });
+  return counts;
+}
+
+// The first unused hue, or the least used one once every hue is taken.
+function freeAccent(counts) {
+  const unused = SUBJECT_ACCENTS.find(hex => counts.get(hex) === 0);
+  if (unused) return unused;
+  return SUBJECT_ACCENTS.reduce((best, hex) => (counts.get(hex) < counts.get(best) ? hex : best), SUBJECT_ACCENTS[0]);
 }
 
 // A subject's colour is stored on the subject itself, so removing one never
-// repaints the others. Subjects created before colours existed fall back to a
-// hash of their id, which is just as stable and needs no migration.
+// repaints the others. Anything without one yet shows the first slot until the
+// backfill below has run and given it a colour of its own.
 export function subjectAccent(subject) {
-  if (!subject) return CATEGORY_ACCENTS.study;
-  if (typeof subject.accent === 'string' && subject.accent.startsWith('#')) return subject.accent;
-  return hashToSlot(subject.id);
+  if (subject && typeof subject.accent === 'string' && subject.accent.startsWith('#')) return subject.accent;
+  return SUBJECT_ACCENTS[0];
 }
 
-// Hands a new subject the first unused hue, falling back to the least used one
-// so that a ninth subject shares rather than repeats a neighbour.
 export function nextSubjectAccent(subjects) {
-  const counts = new Map(SUBJECT_ACCENTS.map(hex => [hex, 0]));
-  subjects.forEach(s => {
-    const hex = subjectAccent(s);
-    if (counts.has(hex)) counts.set(hex, counts.get(hex) + 1);
+  return freeAccent(accentCounts(subjects));
+}
+
+// Subjects created before colours existed have none, and deriving one from the
+// id would let two subjects collide on the same hue — which is exactly what
+// happened. Hand each a distinct colour instead, once, and store it.
+// Returns the same array untouched when there is nothing to fill in.
+export function assignMissingAccents(subjects) {
+  if (!subjects.some(s => !s.accent)) return subjects;
+  const counts = accentCounts(subjects);
+  return subjects.map(s => {
+    if (s.accent) return s;
+    const hex = freeAccent(counts);
+    counts.set(hex, counts.get(hex) + 1);
+    return { ...s, accent: hex };
   });
-  let best = SUBJECT_ACCENTS[0];
-  counts.forEach((count, hex) => {
-    if (count < counts.get(best)) best = hex;
-  });
-  return best;
 }
 
 // Papers within a subject are steps of that subject's hue rather than hues of
