@@ -23,10 +23,10 @@ export default function PaperScanDialog({ subject, paper, topics, onClose }) {
     setStage('reading');
     setFileName(file.name);
     try {
-      const scanned = await scanPaper(file);
+      const scanned = await scanPaper(file, topics);
       setSession(scanned.session || '');
       setYear(scanned.year || '');
-      setRows(scanned.questions.map(q => ({ ...q, target: '' })));
+      setRows(scanned.questions);
       setStage('review');
     } catch (e) {
       setError(e.message);
@@ -40,6 +40,7 @@ export default function PaperScanDialog({ subject, paper, topics, onClose }) {
   const available = rows.reduce((sum, r) => sum + (Number(r.marksAvailable) || 0), 0);
   const scored = rows.reduce((sum, r) => sum + (Number(r.marksScored) || 0), 0);
   const anyScored = rows.some(r => r.marksScored !== null && r.marksScored !== '');
+  const matchedCount = rows.filter(r => r.matched).length;
 
   const save = () => {
     const questions = rows.map(r => {
@@ -147,8 +148,9 @@ export default function PaperScanDialog({ subject, paper, topics, onClose }) {
 
             <div className="flex-1 overflow-y-auto px-5 py-3">
               <p className="text-[11px] text-stone-400 mb-2">
-                {rows.length} questions found. Set a topic on a question for its marks to count towards
-                that topic — leave it blank and the question still counts towards the paper's total.
+                {rows.length} questions found
+                {matchedCount > 0 && `, ${matchedCount} matched to a topic from the wording`}. Worth a
+                glance before saving — anything it could not place is marked below.
               </p>
               <div className="flex flex-col gap-1.5">
                 {rows.map((row, i) => (
@@ -166,8 +168,10 @@ export default function PaperScanDialog({ subject, paper, topics, onClose }) {
                     <span className="shrink-0 font-mono text-xs text-stone-400">/ {row.marksAvailable}</span>
                     <select
                       value={row.target}
-                      onChange={e => setRow(i, { target: e.target.value })}
-                      className="flex-1 min-w-0 border border-stone-300 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                      onChange={e => setRow(i, { target: e.target.value, matched: Boolean(e.target.value) })}
+                      className={`flex-1 min-w-0 border rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 ${
+                        row.target ? 'border-stone-300' : 'border-amber-400 bg-amber-50'
+                      }`}
                     >
                       <option value="">Topic…</option>
                       {topics.map(t => (

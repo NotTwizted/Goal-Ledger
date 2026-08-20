@@ -9,6 +9,7 @@
 
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { matchQuestionToTopic } from './matchtopics';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -66,6 +67,27 @@ function detectSitting(lines) {
   return { session, year };
 }
 
+// Everything printed between one question opening and the next, which is what
+// a topic can be recognised from.
+function collectWording(lines) {
+  const wording = new Map();
+  let current = null;
+
+  lines.forEach(({ text }) => {
+    const opener = text.match(QUESTION_START);
+    if (opener) current = opener[1];
+    TOTAL_LINE.lastIndex = 0;
+    if (TOTAL_LINE.test(text)) {
+      // The total line closes a question and says nothing about its subject.
+      if (current) current = null;
+      return;
+    }
+    if (current) wording.set(current, `${wording.get(current) || ''} ${text}`.trim());
+  });
+
+  return wording;
+}
+
 // Preferred: the paper tells us each question's total outright.
 function fromTotals(lines) {
   const found = new Map();
@@ -100,7 +122,7 @@ function fromPartMarks(lines) {
   return questions.filter(q => q.marksAvailable > 0);
 }
 
-export async function scanPaper(file) {
+export async function scanPaper(file, topics = []) {
   const lines = await readLines(file);
   if (!lines.length) {
     throw new Error('No text could be read from that PDF — it may be a scan of paper rather than a digital document.');
@@ -113,9 +135,15 @@ export async function scanPaper(file) {
     throw new Error('No questions could be identified. You can still add the paper by entering its questions yourself.');
   }
 
+  const wording = collectWording(lines);
+
   return {
     ...detectSitting(lines),
     source: byTotals.length ? 'totals' : 'parts',
-    questions: questions.map(q => ({ ...q, marksScored: null, topic: '' })),
+    questions: questions.map(q => {
+      const text = wording.get(q.question) || '';
+      const { target, score } = matchQuestionToTopic(text, topics);
+      return { ...q, marksScored: null, target, matched: Boolean(target), matchScore: score };
+    }),
   };
 }
