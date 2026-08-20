@@ -6,7 +6,6 @@ import {
   newUnit,
   parseMarkInput,
   normText,
-  scoreFromMarks,
   syncTopicsWithSeed,
   uid,
   unitScores,
@@ -74,10 +73,10 @@ const addScore = (unit, mark, label) => {
 // recalculates its score percentage from them.
 // One upload contributes one mark per unit, however many questions on it
 // touched that unit — so a paper counts once in the average, like a test does.
-const withPaperMarks = (unit, lost, available, label) => {
-  const percent = scoreFromMarks(lost, available);
-  if (percent === null) return unit;
-  return addScore(unit, { percent, scored: Math.max(0, available - lost), total: available }, label);
+const withPaperMarks = (unit, scored, available, label) => {
+  if (!(available > 0)) return unit;
+  const percent = Math.max(0, Math.min(100, Math.round((scored / available) * 100)));
+  return addScore(unit, { percent, scored, total: available }, label);
 };
 
 export function addTopic(subjects, subjectId, name, paper) {
@@ -179,17 +178,33 @@ export function applySeedChecklist(subjects, subjectId, seed) {
   });
 }
 
-// Groups a paper's mistakes onto the units they belong to, then records one
-// mark per unit — a paper is a single sitting, so it counts once.
-function tallyMarks(mistakes, resolve) {
+// Every question on the paper counts, not only the ones that went wrong:
+// a percentage built from mistakes alone would score a near-perfect paper as
+// though the student had only attempted the questions they fumbled.
+// Older records stored just the mistakes, so those are converted back into
+// per-question marks and read the same way.
+function questionsOf(record) {
+  if (Array.isArray(record.questions) && record.questions.length) return record.questions;
+  return (record.mistakes || []).map(m => ({
+    topic: m.topic,
+    subtopic: m.topic,
+    marksScored: Math.max(0, (Number(m.marksAvailable) || 0) - (Number(m.marksLost) || 0)),
+    marksAvailable: Number(m.marksAvailable) || 0,
+  }));
+}
+
+// Sums the marks each unit earned across the whole paper, so one upload
+// leaves one mark per unit.
+function tallyQuestions(questions, resolve) {
   const tally = new Map();
-  mistakes.forEach(m => {
-    if (typeof m.marksLost !== 'number') return;
-    const unitId = resolve(m);
+  questions.forEach(q => {
+    const available = Number(q.marksAvailable) || 0;
+    if (available <= 0) return;
+    const unitId = resolve(q);
     if (!unitId) return;
-    const entry = tally.get(unitId) || { lost: 0, available: 0 };
-    entry.lost += m.marksLost;
-    entry.available += Number(m.marksAvailable) || 0;
+    const entry = tally.get(unitId) || { scored: 0, available: 0 };
+    entry.scored += Math.max(0, Math.min(available, Number(q.marksScored) || 0));
+    entry.available += available;
     tally.set(unitId, entry);
   });
   return tally;
@@ -198,29 +213,37 @@ function tallyMarks(mistakes, resolve) {
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
+    const questions = questionsOf(record);
 
     const topics = s.topics.map(t => {
       if ((t.paper || 'Paper 1') !== paper) return t;
       const hasSubtopics = t.subtopics && t.subtopics.length > 0;
 
-      const tally = tallyMarks(record.mistakes, m => {
-        if (!m.topic) return null;
-        if (hasSubtopics) return findTextMatch(m.topic, t.subtopics)?.id || null;
-        const a = normText(m.topic);
+      // A question reaches a subtopic by its own subtopic label first, then by
+      // its topic label, which is all the older records carry.
+      const tally = tallyQuestions(questions, q => {
+        if (hasSubtopics) {
+          const match = (q.subtopic && findTextMatch(q.subtopic, t.subtopics))
+            || (q.topic && findTextMatch(q.topic, t.subtopics));
+          return match?.id || null;
+        }
+        const label_ = q.topic || q.subtopic;
+        if (!label_) return null;
+        const a = normText(label_);
         const b = normText(t.name);
         return (a === b || a.includes(b) || b.includes(a)) ? t.id : null;
       });
       if (!tally.size) return t;
 
       if (!hasSubtopics) {
-        const { lost, available } = tally.get(t.id);
-        return withPaperMarks(t, lost, available, label);
+        const { scored, available } = tally.get(t.id);
+        return withPaperMarks(t, scored, available, label);
       }
       return {
         ...t,
         subtopics: t.subtopics.map(st => {
           const marks = tally.get(st.id);
-          return marks ? withPaperMarks(st, marks.lost, marks.available, label) : st;
+          return marks ? withPaperMarks(st, marks.scored, marks.available, label) : st;
         }),
       };
     });
@@ -240,15 +263,15 @@ export function addUnitTestRecord(subjects, subjectId, topicId, record) {
   return mapSubject(subjects, subjectId, s =>
     mapTopic(s, topicId, t => {
       const subtopics = t.subtopics || [];
-      const tally = tallyMarks(
-        record.details.map(d => ({ ...d, topic: d.subtopic })),
-        d => findTextMatch(d.subtopic, subtopics)?.id || null
+      const tally = tallyQuestions(
+        questionsOf({ questions: record.details }),
+        q => findTextMatch(q.subtopic, subtopics)?.id || null
       );
       return {
         ...t,
         subtopics: subtopics.map(st => {
           const marks = tally.get(st.id);
-          return marks ? withPaperMarks(st, marks.lost, marks.available, 'Unit test') : st;
+          return marks ? withPaperMarks(st, marks.scored, marks.available, 'Unit test') : st;
         }),
         unitTests: [...(t.unitTests || []), record],
       };

@@ -34,12 +34,13 @@ export async function extractChecklistDraft(file, isStudy) {
 }
 
 export async function extractPastPaper(file, paper, topicNames) {
-  const promptText = `This file is a corrected/marked past exam paper — it shows which answers the student got wrong or lost marks on. First, find the exam session and year printed on the paper (e.g. "May/June", "October/November", "January", "Summer", "Winter" plus a 4-digit year) — look at headers, footers, or the front cover. Then go through it and identify every question where marks were lost. For each one, work out which topic it relates to` +
+  const promptText = `This file is a corrected/marked past exam paper. First, find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question on the paper, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests` +
     (topicNames.length ? ` (pick the closest match from this list where possible: ${topicNames.join(', ')}; otherwise give your own short topic label)` : '') +
-    `, briefly describe the mistake in one short sentence, give the number of marks lost on that question as an integer, and give the total number of marks that question was worth as an integer. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "mistakes": [{"question": "3b", "topic": "Enzyme kinetics", "mistake": "Confused competitive and non-competitive inhibition", "marksLost": 2, "marksAvailable": 5}]}. If the session or year can't be found, use null for that field.`;
+    `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence; where none were lost, leave the mistake out. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]}. If the session or year can't be found, use null for that field.`;
 
-  const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 6000);
-  if (!parsed || !Array.isArray(parsed.mistakes)) throw new Error('Unexpected response');
+  const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 8000);
+  const questions = Array.isArray(parsed?.questions) ? parsed.questions : null;
+  if (!questions) throw new Error('Unexpected response');
 
   return {
     id: uid(),
@@ -48,16 +49,26 @@ export async function extractPastPaper(file, paper, topicNames) {
     session: parsed.session || null,
     year: parsed.year || null,
     uploadedAt: new Date().toISOString(),
-    mistakes: parsed.mistakes,
+    questions,
+    // Kept for the mistakes view, which lists only what went wrong.
+    mistakes: questions
+      .filter(q => (Number(q.marksAvailable) || 0) > (Number(q.marksScored) || 0))
+      .map(q => ({
+        question: q.question,
+        topic: q.subtopic || q.topic,
+        mistake: q.mistake,
+        marksLost: (Number(q.marksAvailable) || 0) - (Number(q.marksScored) || 0),
+        marksAvailable: Number(q.marksAvailable) || 0,
+      })),
   };
 }
 
 export async function extractUnitTest(file, topicName, subtopicNames) {
-  const promptText = `This file is a corrected/marked unit test on the topic "${topicName || ''}". Go through it and identify every question where marks were lost, and work out which subtopic each one relates to` +
+  const promptText = `This file is a corrected/marked unit test on the topic "${topicName || ''}". Go through EVERY question on it, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a subtopic. For each question give the subtopic it tests` +
     (subtopicNames.length ? ` (pick the closest match from this list where possible: ${subtopicNames.join(', ')}; otherwise give your own short subtopic label)` : '') +
-    `, giving the number of marks lost on that question as an integer, the total number of marks that question was worth as an integer, and a one-sentence description of the mistake. Then list which subtopics need the most focus, ranked by how many marks were lost on them. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksLost": 2, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]}`;
+    `, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence. Then list which subtopics need the most focus, ranked by how many marks were lost on them. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]}`;
 
-  const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 4000);
+  const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 6000);
   if (!parsed || !Array.isArray(parsed.details)) throw new Error('Unexpected response');
 
   return {
