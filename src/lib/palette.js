@@ -10,22 +10,22 @@
 // doing the identifying on its own.
 const SUBJECT_ACCENTS = [
   '#2a78d6', // blue
-  '#eb6834', // orange
-  '#1baf7a', // aqua
   '#eda100', // yellow
-  '#e87ba4', // magenta
+  '#be123c', // crimson
   '#008300', // green
+  '#e87ba4', // pink
+  '#a21caf', // magenta
   '#4a3aa7', // violet
-  '#e34948', // red
-  '#0891b2', // cyan
-  '#9333ea', // purple
-  '#65a30d', // lime
-  '#92400e', // brown
+  '#1baf7a', // aqua
 ];
 
+// The header's two buttons are chrome rather than data, and they sit beside
+// every subject colour on every page, so they are held apart from the subject
+// hues entirely — deliberately duller and cooler/warmer than anything a
+// subject can be given.
 const CATEGORY_ACCENTS = {
-  study: '#3730a3',
-  general: '#b45309',
+  study: '#334155',
+  general: '#713f12',
 };
 
 function accentCounts(subjects) {
@@ -51,19 +51,23 @@ export function subjectAccent(subject) {
   return SUBJECT_ACCENTS[0];
 }
 
+export { SUBJECT_ACCENTS };
+
 export function nextSubjectAccent(subjects) {
   return freeAccent(accentCounts(subjects));
 }
 
-// Subjects created before colours existed have none, and deriving one from the
-// id would let two subjects collide on the same hue — which is exactly what
-// happened. Hand each a distinct colour instead, once, and store it.
+// Hands out a distinct colour to any subject that lacks one, or that holds a
+// colour no longer in the palette — so trimming the palette re-homes the
+// subjects that were using a retired hue rather than stranding them on it.
 // Returns the same array untouched when there is nothing to fill in.
+const inPalette = (hex) => SUBJECT_ACCENTS.includes(hex);
+
 export function assignMissingAccents(subjects) {
-  if (!subjects.some(s => !s.accent)) return subjects;
+  if (!subjects.some(s => !inPalette(s.accent))) return subjects;
   const counts = accentCounts(subjects);
   return subjects.map(s => {
-    if (s.accent) return s;
+    if (inPalette(s.accent)) return s;
     const hex = freeAccent(counts);
     counts.set(hex, counts.get(hex) + 1);
     return { ...s, accent: hex };
