@@ -10,11 +10,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: { message: 'This endpoint only accepts POST.' } });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // The reader's own key, sent from the browser, takes precedence; otherwise
+  // the site's own. Either way the key is only ever handled here, never built
+  // into the page.
+  const apiKey = req.headers['x-user-api-key'] || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({
+    return res.status(401).json({
       error: {
-        message: 'This site has no ANTHROPIC_API_KEY set. Add it in the Vercel project settings and redeploy.',
+        message: 'No API key. Add one under the three-dot menu, or set ANTHROPIC_API_KEY on the server.',
       },
     });
   }

@@ -1,5 +1,15 @@
 import { Circle, CircleDot, CheckCircle2 } from 'lucide-react';
+import { getApiKey } from './apikey';
 import { effectiveTarget } from './goals';
+
+// The key travels as a header to this site's own endpoint, which forwards it.
+function requestHeaders() {
+  const key = getApiKey();
+  return key
+    ? { 'Content-Type': 'application/json', 'x-user-api-key': key }
+    : { 'Content-Type': 'application/json' };
+}
+
 
 export const STATUS_ORDER = ['not-started', 'in-progress', 'done'];
 export const STATUS_META = {
@@ -100,7 +110,7 @@ export function extractJson(text) {
 export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens) {
   const response = await fetch('/api/extract', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
@@ -144,7 +154,7 @@ export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens
 export async function callClaudeText(promptText, maxTokens) {
   const response = await fetch('/api/extract', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,

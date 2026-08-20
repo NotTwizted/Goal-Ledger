@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Lock, LogOut, MoreVertical } from 'lucide-react';
+import { Bell, BellOff, KeyRound, Lock, LogOut, MoreVertical } from 'lucide-react';
+import { hasApiKey, maskApiKey } from '../lib/apikey';
+import ApiKeyDialog from './ApiKeyDialog';
 
 // The settings that aren't navigation live behind the three dots, so the
 // header keeps only the two places you actually go.
@@ -12,6 +14,7 @@ export default function HeaderMenu({
   onSignOut,
 }) {
   const [open, setOpen] = useState(false);
+  const [showKey, setShowKey] = useState(false);
   const wrapper = useRef(null);
 
   useEffect(() => {
@@ -79,6 +82,18 @@ export default function HeaderMenu({
 
           <button
             role="menuitem"
+            onClick={() => { setOpen(false); setShowKey(true); }}
+            className={`${item} border-t border-stone-200`}
+          >
+            <KeyRound size={15} className="shrink-0" />
+            <span className="flex-1">API key</span>
+            <span className="text-[10px] font-mono text-stone-400">
+              {hasApiKey() ? maskApiKey() : 'Not set'}
+            </span>
+          </button>
+
+          <button
+            role="menuitem"
             onClick={() => { setOpen(false); onSignOut(); }}
             className={`${item} border-t border-stone-200`}
           >
@@ -87,6 +102,8 @@ export default function HeaderMenu({
           </button>
         </div>
       )}
+
+      {showKey && <ApiKeyDialog onClose={() => setShowKey(false)} />}
     </div>
   );
 }
