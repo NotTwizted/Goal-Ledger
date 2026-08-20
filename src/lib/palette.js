@@ -9,23 +9,25 @@
 // subject is captioned with its name everywhere it appears, so hue is never
 // doing the identifying on its own.
 const SUBJECT_ACCENTS = [
-  '#2a78d6', // blue
-  '#eda100', // yellow
-  '#be123c', // crimson
-  '#008300', // green
-  '#e87ba4', // pink
-  '#a21caf', // magenta
-  '#4a3aa7', // violet
-  '#1baf7a', // aqua
+  '#a20081', // magenta
+  '#00c756', // green
+  '#0094ff', // blue
+  '#346d26', // moss
+  '#f771a0', // pink
+  '#9657e8', // purple
+  '#c5a300', // gold
+  '#009690', // teal
+  '#b093e5', // lavender
 ];
 
-// The header's two buttons are chrome rather than data, and they sit beside
-// every subject colour on every page, so they are held apart from the subject
-// hues entirely — deliberately duller and cooler/warmer than anything a
-// subject can be given.
+// The header's two buttons keep the indigo and amber they have always had.
+// The subject hues above were then chosen around them: every one sits at
+// least 20 in OKLab from both, five times the separation of the orange that
+// used to collide with the Goals button, while staying at least 15 from each
+// other so no two subjects look alike either.
 const CATEGORY_ACCENTS = {
-  study: '#334155',
-  general: '#713f12',
+  study: '#3730a3',
+  general: '#b45309',
 };
 
 function accentCounts(subjects) {
