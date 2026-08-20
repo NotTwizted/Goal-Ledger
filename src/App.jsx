@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarCheck, Check, ChevronLeft, GraduationCap, Lock, Target } from 'lucide-react';
+import { Bell, BellOff, CalendarCheck, Check, ChevronLeft, GraduationCap, Lock, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, mathsComponentTag, pastPaperLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
@@ -43,6 +43,11 @@ export default function StudyTracker() {
   const [editing, setEditing] = useState(false);
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
+  // Browser permission can be granted but never withdrawn from script, so the
+  // on/off state is ours to keep — permission is only the gate in front of it.
+  const [remindersOn, setRemindersOn] = useState(
+    () => localStorage.getItem('study-tracker:reminders') !== 'off'
   );
 
   const route = useRoute();
@@ -157,7 +162,7 @@ export default function StudyTracker() {
   }, [authLoading, user]);
 
   useEffect(() => {
-    if (!loaded || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (!loaded || !remindersOn || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
     let notified = {};
     try {
@@ -193,7 +198,7 @@ export default function StudyTracker() {
         // best effort
       }
     }
-  }, [loaded, subjects]);
+  }, [loaded, remindersOn, subjects]);
 
   // One listener for the whole app, so every button — including ones rendered
   // later — acknowledges a press without each component opting in.
@@ -222,9 +227,22 @@ export default function StudyTracker() {
     };
   }, []);
 
-  const requestNotificationPermission = useCallback(async () => {
+  const toggleReminders = useCallback(async () => {
     if (typeof Notification === 'undefined') return;
-    setNotifPermission(await Notification.requestPermission());
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      if (permission === 'granted') {
+        setRemindersOn(true);
+        localStorage.setItem('study-tracker:reminders', 'on');
+      }
+      return;
+    }
+    setRemindersOn(on => {
+      const next = !on;
+      localStorage.setItem('study-tracker:reminders', next ? 'on' : 'off');
+      return next;
+    });
   }, []);
 
   const persist = useCallback(async (next) => {
@@ -261,8 +279,8 @@ export default function StudyTracker() {
   }, [loaded, user, subjects, updateSubjects]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, requestNotificationPermission }),
-    [subjects, updateSubjects, weekOffset, editing, notifPermission, requestNotificationPermission]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission]
   );
 
   const handleAuthSubmit = async (e) => {
@@ -479,7 +497,42 @@ export default function StudyTracker() {
               <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+          {[
+            { key: 'study', label: 'Studies', Icon: GraduationCap },
+            { key: 'general', label: 'Goals', Icon: Target },
+          ].map(({ key, label, Icon }) => {
+            const active = route.name === 'dashboard' && route.category === key;
+            return (
+              <button
+                key={key}
+                onClick={() => navigate(paths.category(key))}
+                title={key === 'study' ? 'Studies' : 'General goals'}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border ${
+                  active ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300'
+                }`}
+              >
+                <Icon size={13} /> <span className="hidden sm:inline">{label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={toggleReminders}
+            title={
+              notifPermission === 'denied'
+                ? 'Reminders are blocked in your browser settings'
+                : notifPermission === 'default'
+                  ? 'Turn on deadline reminders'
+                  : remindersOn ? 'Deadline reminders are on' : 'Deadline reminders are off'
+            }
+            className={`flex items-center px-2.5 py-1.5 text-xs rounded border ${
+              remindersOn && notifPermission === 'granted'
+                ? 'bg-stone-800 text-white border-stone-800'
+                : 'text-stone-600 border-stone-300'
+            }`}
+          >
+            {remindersOn && notifPermission === 'granted' ? <Bell size={13} /> : <BellOff size={13} />}
+          </button>
           <button
             onClick={() => setEditing(v => !v)}
             title={editing ? 'Lock the ledger' : 'Unlock to add, import, or delete'}
