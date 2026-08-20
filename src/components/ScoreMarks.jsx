@@ -19,9 +19,6 @@ export function ScoreSummary({ unit, open, onToggle }) {
       <span className="font-mono text-xs text-stone-700 w-9 text-right">
         {average === null ? '—' : `${average}%`}
       </span>
-      <span className="font-mono text-[9px] text-stone-400 w-7 text-left">
-        {count > 1 ? `avg ${count}` : count === 1 ? '1 mark' : ''}
-      </span>
       <span className={`px-1 py-0.5 rounded border font-mono tracking-wider text-[8px] ${MASTERY_LEVELS[unit.mastery || 0].color}`}>
         {MASTERY_LEVELS[unit.mastery || 0].stamp}
       </span>
