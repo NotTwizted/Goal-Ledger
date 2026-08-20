@@ -776,27 +776,39 @@ export const SEED_DATA = (() => {
     T('Algorithm design and problem-solving', ['Flowcharts and pseudocode', 'Structured programming constructs']),
     T('Programming', ['Programming concepts and data structures']),
   ];
-  const CS_CIE_P1 = [
-    T('Data representation', ['Number systems, binary, and text/image/sound representation', 'User-defined data types']),
-    T('Communication and internet technologies', ['Data transmission and networks', 'The internet and cloud computing']),
-    T('Hardware', ['Computer architecture and logic gates']),
-    T('Processor fundamentals', ['The fetch-execute cycle', 'Addressing modes']),
-    T('System software', ['Operating systems and utility software']),
-    T('Security, privacy and data integrity', ['Threats and protection methods']),
-    T('Ethics and ownership', ['Legal and ethical issues in computing']),
-    T('Algorithm design and problem-solving', ['Flowcharts, pseudocode, and trace tables']),
-    T('Data structures', ['Arrays, records, and files']),
-    T('Programming', ['Programming constructs and structured programming']),
-    T('Software development', ['Program design and testing']),
+  // 9618 examines theory and programming as separate papers at both levels:
+  // Papers 1 and 2 at AS, Papers 3 and 4 at A2. They were previously merged
+  // into one list each, which left AS Paper 2 with nothing to load.
+  const CS_CIE_AS_P1 = [
+    T('Information representation', ['Number systems and binary', 'Representing text, sound and images', 'Data compression', 'User-defined data types']),
+    T('Communication', ['Networks and network topologies', 'The internet and how data is transmitted', 'Network hardware and protocols']),
+    T('Hardware', ['Computer architecture and the CPU', 'Input, output and storage devices', 'Logic gates and logic circuits']),
+    T('Processor fundamentals', ['The Von Neumann model and registers', 'The fetch-decode-execute cycle', 'Assembly language and addressing modes', 'Interrupts']),
+    T('System software', ['The role of the operating system', 'Utility software', 'Interpreters, compilers and assemblers']),
+    T('Security, privacy and data integrity', ['Threats to data', 'Encryption, firewalls and authentication', 'Validation and verification']),
+    T('Ethics and ownership', ['Copyright and software licensing', 'Professional and ethical conduct']),
+    T('Databases', ['Limitations of a file-based approach', 'Relational database design and normalisation', 'Data dictionaries and DBMS features', 'SQL for querying and defining data']),
   ];
-  const CS_CIE_P2 = [
-    T('Further computational thinking', ['Searching and sorting algorithms', 'Further data structures']),
-    T('Artificial intelligence', ['Machine learning and AI applications']),
-    T('Further programming', ['Recursion and exception handling']),
-    T('Programming paradigms', ['Procedural, object-oriented, and other paradigms']),
-    T('Further computer architecture', ['Parallel processing and virtual machines']),
-    T('Further communication and networking', ['Cloud storage and public/private clouds']),
-    T('Databases', ['Relational databases and normalisation', 'SQL']),
+  const CS_CIE_AS_P2 = [
+    T('Algorithm design and problem-solving', ['Decomposition and abstraction', 'Structure charts, flowcharts and pseudocode', 'Trace tables and dry running', 'Identifying and correcting errors']),
+    T('Data types and structures', ['Data types and how they are chosen', 'Arrays: one and two dimensional', 'Records and files', 'Reading from and writing to text files']),
+    T('Programming', ['Sequence, selection and iteration', 'Procedures, functions and parameters', 'Local and global variables', 'Built-in and user-defined functions']),
+    T('Software development', ['The program development life cycle', 'Design methods and modular programming', 'Test data: normal, boundary and erroneous', 'Types of testing and maintenance']),
+  ];
+  const CS_CIE_A2_P3 = [
+    T('Data representation (advanced)', ['Floating-point numbers and normalisation', 'Underflow and overflow']),
+    T('Communication and networking', ['Client-server and peer-to-peer models', 'Cloud computing and storage', 'Protocols and packet switching']),
+    T('Hardware and virtual machines', ['Parallel processing and RISC/CISC', 'Virtual machines and their uses', 'Boolean algebra and Karnaugh maps']),
+    T('System software (advanced)', ['Process scheduling and states', 'Memory management, paging and virtual memory', 'Translation software in depth']),
+    T('Security (advanced)', ['Asymmetric encryption and digital signatures', 'Digital certificates and SSL/TLS', 'Malware and countermeasures']),
+    T('Artificial intelligence', ['Graphs and A* search', 'Machine learning: supervised and unsupervised', 'Artificial neural networks and deep learning']),
+  ];
+  const CS_CIE_A2_P4 = [
+    T('Computational thinking', ['Abstraction and decomposition in larger problems', 'Algorithm efficiency and Big O notation']),
+    T('Algorithms', ['Linear and binary search', 'Bubble and insertion sort', 'Stacks, queues, linked lists and trees', 'Traversal algorithms']),
+    T('Recursion', ['Writing and tracing recursive routines', 'How recursion uses the stack', 'Converting between recursive and iterative solutions']),
+    T('Programming paradigms', ['Low-level programming', 'Imperative and procedural programming', 'Object-oriented programming: classes, inheritance, polymorphism', 'Declarative programming and queries']),
+    T('File and exception handling', ['Random and sequential file access', 'Exception handling in programs']),
   ];
 
   const ACC_IGCSE = [
@@ -971,8 +983,8 @@ export const SEED_DATA = (() => {
     },
     'Computer Science': {
       IGCSE: { 'Cambridge (CIE)': { 'Paper 1': CS_IGCSE } },
-      AS: { 'Cambridge (CIE)': { 'Paper 1': CS_CIE_P1 } },
-      'A Level': { 'Cambridge (CIE)': { 'Paper 1': CS_CIE_P1, 'Paper 2': CS_CIE_P2 } },
+      AS: { 'Cambridge (CIE)': { 'Paper 1': CS_CIE_AS_P1, 'Paper 2': CS_CIE_AS_P2 } },
+      'A Level': { 'Cambridge (CIE)': { 'Paper 1': CS_CIE_AS_P1, 'Paper 2': CS_CIE_AS_P2, 'Paper 3': CS_CIE_A2_P3, 'Paper 4': CS_CIE_A2_P4 } },
     },
     'Accounting': {
       IGCSE: { 'Cambridge (CIE)': { 'Paper 1': ACC_IGCSE } },

@@ -1,27 +1,25 @@
 // Each subject owns a hue, and everything belonging to it — its card, its
 // progress bars, its papers, its topic cards — is drawn in that hue.
 //
-// Plain colours only — a blue, a green, a deep red and a grey. Purple,
-// violet, magenta and yellow-green are excluded outright: they are what made
-// earlier sets look garish, however well they measured.
+// Deep tones only — the 700/800 end of each family. Nothing pastel, nothing
+// fluorescent: the brightness is what read as childish, not the hue, so a
+// purple or a pink is fine here where a lilac or a hot magenta was not.
 const SUBJECT_ACCENTS = [
-  '#0071a1', // petrol blue
-  '#2f7d32', // green
-  '#8d2350', // crimson
-  '#57534e', // warm grey
+  '#0369a1', // steel blue
+  '#15803d', // green
+  '#7f1d1d', // maroon
+  '#86198f', // plum
+  '#57534e', // stone
+  '#be185d', // deep pink
 ];
 
 // The header's two buttons keep the indigo and amber they have always had,
-// and the subject hues are chosen around them — each at least 16 in OKLab
-// from both, against the 12.1 of the orange that used to collide with the
-// Goals button, and at least 14 from every other subject.
-//
-// Four is what ordinary colour allows here, and the arithmetic is
-// unforgiving: with indigo and amber reserved for the header, the families
-// left are blue, green, red and neutral. Teal was tried and collides with
-// blue, green and grey at once; a brighter red lands 7 from the amber
-// button. Adding a fifth means reaching for purple or acid green, which is
-// exactly what was asked against.
+// and the subject hues are chosen around them: every pair at least 13 apart
+// and none within 14 of a header button — against the 12.1 of the orange
+// that used to collide with the Goals button. Allowing
+// deep purples and pinks back is what buys the extra slots: excluding whole
+// families cost two colours, and depth turned out to be the property that
+// mattered rather than which part of the wheel they came from.
 const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
