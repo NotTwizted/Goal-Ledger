@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
-import { MASTERY_THRESHOLD, STATUS_META, averageScore, isMastered } from '../lib/helpers';
+import { MASTERY_THRESHOLD, STATUS_META, averageScore, formatDateTime, isMastered } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
 import { ScorePanel, ScoreSummary } from './ScoreMarks';
 import ConfirmDialog from './ConfirmDialog';
+import { paperFeedback } from '../lib/feedback';
 
 // The right-hand pane: everything about the one topic selected in the list.
 export default function TopicDetail({ subject, topic, accent, percent }) {
@@ -182,11 +183,36 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
 
       {testError && <p className="text-xs text-rose-600 mt-2">{testError}</p>}
 
-      {(latestTest?.focus || []).length > 0 && (
-        <p className="text-xs text-amber-700 mt-2 leading-snug">
-          Focus: {latestTest.focus.join(', ')}
-        </p>
-      )}
+      {latestTest && (() => {
+        // The same reading a past paper gets, for the most recent test on this
+        // topic — where the marks went and what to do about it.
+        const { summary, areas, lost, score } = paperFeedback({ ...latestTest, questions: latestTest.details });
+        return (
+          <div className="mt-3 pt-3 border-t border-stone-100">
+            <div className="flex items-baseline gap-2 mb-1.5">
+              <p className="text-[10px] font-mono tracking-wider text-stone-400">
+                LATEST UNIT TEST · {formatDateTime(latestTest.uploadedAt)}
+              </p>
+              {score && <span className="font-mono text-[10px] text-stone-500">{score.scored}/{score.available} · {score.percent}%</span>}
+            </div>
+            {summary && <p className="text-xs text-stone-700 leading-relaxed">{summary}</p>}
+            {areas.map((area, i) => (
+              <div key={i} className="mt-2">
+                <p className="text-xs font-medium text-stone-800">
+                  {area.topic}
+                  {lost.find(l => l.topic === area.topic) && (
+                    <span className="ml-1.5 font-mono text-[10px] text-stone-400">
+                      −{lost.find(l => l.topic === area.topic).lost} marks
+                    </span>
+                  )}
+                </p>
+                {area.problem && <p className="text-xs text-stone-600 leading-relaxed">{area.problem}</p>}
+                {area.action && <p className="text-xs text-emerald-800 leading-relaxed mt-0.5">→ {area.action}</p>}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {pendingSubtopic && (
         <ConfirmDialog

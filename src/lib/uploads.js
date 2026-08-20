@@ -36,7 +36,11 @@ export async function extractChecklistDraft(file, isStudy) {
 export async function extractPastPaper(file, paper, topicNames) {
   const promptText = `This file is a corrected/marked past exam paper. First, find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question on the paper, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests` +
     (topicNames.length ? ` (pick the closest match from this list where possible: ${topicNames.join(', ')}; otherwise give your own short topic label)` : '') +
-    `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence; where none were lost, leave the mistake out. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]}. If the session or year can't be found, use null for that field.`;
+    `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence; where none were lost, leave the mistake out.
+
+Then write feedback on THIS paper specifically. It must be grounded in the answers in front of you — never generic study advice, and never anything that would read the same on a different paper. For each topic where marks were actually lost, name the topic, describe the pattern behind the errors rather than restating one question, and give one concrete thing to do about it, naming the specific idea or technique. Add a one-sentence summary saying where the marks went and what cost the most. If no marks were lost anywhere, say so in the summary and give an empty list of areas.
+
+Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "feedback": {"summary": "Nineteen of the 23 marks lost were on enzyme kinetics, mostly for describing graphs rather than explaining them.", "areas": [{"topic": "Inhibition", "problem": "Describes what the graph shows without saying why Vmax is unchanged", "action": "For each inhibitor type, write one sentence linking the shape of the curve to what the inhibitor does to the active site"}]}}. If the session or year can't be found, use null for that field.`;
 
   const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 8000);
   const questions = Array.isArray(parsed?.questions) ? parsed.questions : null;
@@ -50,6 +54,7 @@ export async function extractPastPaper(file, paper, topicNames) {
     year: parsed.year || null,
     uploadedAt: new Date().toISOString(),
     questions,
+    feedback: parsed.feedback && typeof parsed.feedback === 'object' ? parsed.feedback : null,
     // Kept for the mistakes view, which lists only what went wrong.
     mistakes: questions
       .filter(q => (Number(q.marksAvailable) || 0) > (Number(q.marksScored) || 0))
@@ -66,7 +71,11 @@ export async function extractPastPaper(file, paper, topicNames) {
 export async function extractUnitTest(file, topicName, subtopicNames) {
   const promptText = `This file is a corrected/marked unit test on the topic "${topicName || ''}". Go through EVERY question on it, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a subtopic. For each question give the subtopic it tests` +
     (subtopicNames.length ? ` (pick the closest match from this list where possible: ${subtopicNames.join(', ')}; otherwise give your own short subtopic label)` : '') +
-    `, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence. Then list which subtopics need the most focus, ranked by how many marks were lost on them. Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]}`;
+    `, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence. Then list which subtopics need the most focus, ranked by how many marks were lost on them.
+
+Then write feedback on THIS test specifically, grounded in the answers in front of you — never generic study advice, and never anything that would read the same on a different test. For each subtopic where marks were lost, describe the pattern behind the errors rather than restating one question, and give one concrete thing to do about it. Add a one-sentence summary of where the marks went.
+
+Respond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"], "feedback": {"summary": "...", "areas": [{"topic": "Enzyme kinetics", "problem": "...", "action": "..."}]}}`;
 
   const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 6000);
   if (!parsed || !Array.isArray(parsed.details)) throw new Error('Unexpected response');
@@ -76,6 +85,7 @@ export async function extractUnitTest(file, topicName, subtopicNames) {
     fileName: file.name,
     uploadedAt: new Date().toISOString(),
     focus: Array.isArray(parsed.focus) ? parsed.focus : [],
+    feedback: parsed.feedback && typeof parsed.feedback === 'object' ? parsed.feedback : null,
     details: parsed.details,
   };
 }

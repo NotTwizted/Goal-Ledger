@@ -467,7 +467,7 @@ export default function StudyTracker() {
           : <NotFound message="That subject no longer exists." />;
       case 'pastPaper':
         return routePastPaper
-          ? <PastPaperPage pastPaper={routePastPaper} />
+          ? <PastPaperPage subject={routeSubject} pastPaper={routePastPaper} />
           : <NotFound message="That past paper no longer exists." />;
       case 'reportDetail':
         return <ReportDetailPage subjectId={route.subjectId} />;

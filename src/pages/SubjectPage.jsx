@@ -235,7 +235,7 @@ export default function SubjectPage({ subject }) {
             rows={7}
             placeholder={isStudy
               ? 'e.g.\nCell structure\n  Prokaryotic vs eukaryotic cells\n  Organelles\nEnzyme action'
-              : 'e.g.\n1. Do 10 pullups\n2. Run 5km\n3. Read 12 books'}
+              : goalImportPlaceholder(subject)}
             className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center justify-between mt-2">
