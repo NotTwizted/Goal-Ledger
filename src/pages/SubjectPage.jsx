@@ -11,6 +11,7 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractChecklistDraft } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
+import { goalImportPlaceholder, goalPlaceholder } from '../lib/goals';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import GoalRow from '../components/GoalRow';
 
@@ -153,7 +154,7 @@ export default function SubjectPage({ subject }) {
           <input
             value={goalName}
             onChange={e => setGoalName(e.target.value)}
-            placeholder="Add a goal…"
+            placeholder={goalPlaceholder(subject)}
             className="flex-1 border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
             onKeyDown={e => e.key === 'Enter' && addGoal()}
           />

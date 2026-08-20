@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { STATUS_META } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
+import { goalUnit } from '../lib/goals';
 import ConfirmDialog from './ConfirmDialog';
 
 // A goal is measured against a target: what you can do now against what you
@@ -13,6 +14,7 @@ export default function GoalRow({ subject, topic }) {
   const [confirming, setConfirming] = useState(false);
   const StatusIcon = STATUS_META[topic.status].icon;
 
+  const unit = goalUnit(subject, topic);
   const target = Number(topic.target) || 0;
   const current = Number(topic.current) || 0;
   const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
@@ -21,7 +23,7 @@ export default function GoalRow({ subject, topic }) {
     updateSubjects(mutate.setGoalProgress(subjects, subject.id, topic.id, field, value));
 
   const field = (label, name, value) => (
-    <label className="flex items-center gap-1.5">
+    <label className="flex items-center gap-1.5" title={`${label}${unit ? `, in ${unit}` : ''}`}>
       <span className="text-[11px] text-stone-500">{label}</span>
       <input
         type="number"
@@ -30,6 +32,7 @@ export default function GoalRow({ subject, topic }) {
         onChange={e => set(name, e.target.value)}
         className="w-16 border border-stone-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
       />
+      {unit && <span className="text-[11px] text-stone-400">{unit}</span>}
     </label>
   );
 
@@ -39,7 +42,7 @@ export default function GoalRow({ subject, topic }) {
         <button
           onClick={() => target === 0 && updateSubjects(mutate.cycleGoalStatus(subjects, subject.id, topic.id))}
           title={target > 0
-            ? `${current} of ${target} — reaching the target completes it`
+            ? `${current} of ${target}${unit ? ` ${unit}` : ''} — reaching the target completes it`
             : STATUS_META[topic.status].label}
           className={`shrink-0 ${STATUS_META[topic.status].ring} ${target > 0 ? 'cursor-default' : ''}`}
         >
@@ -60,7 +63,7 @@ export default function GoalRow({ subject, topic }) {
 
       <div className="flex items-center gap-4 mt-2 ml-8 flex-wrap">
         {field('Now', 'current', topic.current)}
-        {field('Target', 'target', topic.target)}
+        {field('Aiming for', 'target', topic.target)}
       </div>
 
       {percent !== null && (
