@@ -35,7 +35,7 @@ export default function HeaderMenu({
       ? 'Off — tap to allow'
       : remindersActive ? 'On' : 'Off';
 
-  const item = 'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-stone-700';
+  const item = 'w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-left text-stone-700';
 
   return (
     <div className="relative" ref={wrapper}>
@@ -44,11 +44,11 @@ export default function HeaderMenu({
         title="Settings"
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center px-2 py-1.5 rounded border ${
+        className={`flex items-center px-2.5 py-2.5 rounded-lg border ${
           editing ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300'
         }`}
       >
-        <MoreVertical size={15} />
+        <MoreVertical size={19} />
       </button>
 
       {open && (

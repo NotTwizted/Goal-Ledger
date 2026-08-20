@@ -498,7 +498,7 @@ export default function StudyTracker() {
               <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
           {[
             { key: 'study', label: 'Studies', Icon: GraduationCap },
             { key: 'general', label: 'Goals', Icon: Target },
@@ -510,14 +510,14 @@ export default function StudyTracker() {
                 key={key}
                 onClick={() => navigate(paths.category(key))}
                 title={key === 'study' ? 'Studies' : 'General goals'}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded border font-medium"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border font-medium"
                 style={{
                   color: active ? '#ffffff' : hue,
                   borderColor: hue,
                   backgroundColor: active ? hue : `${hue}12`,
                 }}
               >
-                <Icon size={13} /> <span className="hidden sm:inline">{label}</span>
+                <Icon size={17} /> <span className="hidden sm:inline">{label}</span>
               </button>
             );
           })}
