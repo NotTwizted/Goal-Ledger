@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { MASTERY_LEVELS, averageScore, unitScores } from '../lib/helpers';
+import { MASTERY_LEVELS, averageScore, parseMarkInput, unitScores } from '../lib/helpers';
 
 // The compact half: the average, how many marks it came from, and the stamp.
 // Clicking opens the panel below.
@@ -34,8 +34,10 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
   const [draft, setDraft] = useState('');
   const scores = unitScores(unit);
 
+  const parsed = parseMarkInput(draft);
+
   const submit = () => {
-    if (draft.trim() === '') return;
+    if (!parsed) return;
     onAdd(draft);
     setDraft('');
   };
@@ -49,7 +51,12 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
               key={score.id}
               className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 bg-white border border-stone-300 rounded-full"
             >
-              <span className="font-mono text-[11px] text-stone-700">{score.percent}%</span>
+              {score.total > 0 && (
+                <span className="font-mono text-[11px] text-stone-800">{score.scored}/{score.total}</span>
+              )}
+              <span className={`font-mono text-[11px] ${score.total > 0 ? 'text-stone-500' : 'text-stone-800'}`}>
+                {score.percent}%
+              </span>
               {score.label && <span className="text-[9px] text-stone-400">{score.label}</span>}
               <button
                 onClick={() => onRemove(score.id)}
@@ -65,22 +72,27 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
 
       <div className="flex items-center gap-1.5">
         <input
-          type="number"
-          min="0"
-          max="100"
+          type="text"
+          inputMode="text"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Add a mark %"
-          className="w-28 border border-stone-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
+          placeholder="45/60 or 75"
+          title="Enter marks out of a total, or a plain percentage"
+          className="w-32 border border-stone-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
-        <button onClick={submit} className="px-2 py-1 bg-stone-800 text-white rounded text-xs">
+        <button
+          onClick={submit}
+          disabled={!parsed}
+          className="px-2 py-1 bg-stone-800 text-white rounded text-xs disabled:bg-stone-300"
+        >
           <Plus size={12} />
         </button>
-        {scores.length > 1 && (
-          <span className="text-[10px] text-stone-400">
-            averaged into {averageScore(unit)}%
-          </span>
+        {parsed && parsed.total > 0 && (
+          <span className="font-mono text-[10px] text-stone-500">= {parsed.percent}%</span>
+        )}
+        {!draft.trim() && scores.length > 1 && (
+          <span className="text-[10px] text-stone-400">averaged into {averageScore(unit)}%</span>
         )}
       </div>
     </div>

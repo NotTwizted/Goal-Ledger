@@ -1,10 +1,10 @@
 import {
   averageScore,
-  clampPercent,
   isMastered,
   findTextMatch,
   masteryFromScore,
   newUnit,
+  parseMarkInput,
   normText,
   scoreFromMarks,
   syncTopicsWithSeed,
@@ -65,10 +65,9 @@ const withScores = (unit, scores) => {
   });
 };
 
-const addScore = (unit, percent, label) => {
-  const value = clampPercent(percent);
-  if (value === '') return unit;
-  return withScores(unit, [...unitScores(unit), { id: uid(), percent: value, label }]);
+const addScore = (unit, mark, label) => {
+  if (!mark) return unit;
+  return withScores(unit, [...unitScores(unit), { id: uid(), ...mark, label }]);
 };
 
 // Folds marks from an uploaded paper into a unit's running totals and
@@ -77,7 +76,8 @@ const addScore = (unit, percent, label) => {
 // touched that unit — so a paper counts once in the average, like a test does.
 const withPaperMarks = (unit, lost, available, label) => {
   const percent = scoreFromMarks(lost, available);
-  return percent === null ? unit : addScore(unit, percent, label);
+  if (percent === null) return unit;
+  return addScore(unit, { percent, scored: Math.max(0, available - lost), total: available }, label);
 };
 
 export function addTopic(subjects, subjectId, name, paper) {
@@ -104,9 +104,12 @@ const mapUnit = (subject, topicId, subtopicId, fn) =>
     ? { ...t, subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? fn(st) : st)) }
     : fn(t)));
 
-export function addUnitScore(subjects, subjectId, topicId, subtopicId, value, label) {
+// Takes "45/60" or "75" — whichever the student has in front of them.
+export function addUnitScore(subjects, subjectId, topicId, subtopicId, input, label) {
+  const mark = parseMarkInput(input);
+  if (!mark) return subjects;
   return mapSubject(subjects, subjectId, s =>
-    mapUnit(s, topicId, subtopicId, u => addScore(u, value, label)));
+    mapUnit(s, topicId, subtopicId, u => addScore(u, mark, label)));
 }
 
 export function removeUnitScore(subjects, subjectId, topicId, subtopicId, scoreId) {

@@ -150,6 +150,27 @@ export function clampPercent(value) {
   return Math.max(0, Math.min(100, n));
 }
 
+// Accepts a mark as it would be written on a paper — "45/60" — or as a bare
+// percentage. Returns the percentage plus the raw marks when they were given,
+// so the ledger can show both. Null means it could not be read.
+export function parseMarkInput(input) {
+  const text = String(input ?? '').trim();
+  if (!text) return null;
+
+  const fraction = text.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if (fraction) {
+    const scored = Number(fraction[1]);
+    const total = Number(fraction[2]);
+    if (!(total > 0)) return null;
+    return { percent: clampPercent(Math.round((scored / total) * 100)), scored, total };
+  }
+
+  const bare = text.replace(/%$/, '').trim();
+  if (!/^\d+(\.\d+)?$/.test(bare)) return null;
+  const percent = clampPercent(bare);
+  return percent === '' ? null : { percent };
+}
+
 // Turns running mark totals from uploaded papers into a score percentage.
 // Returns null when nothing usable has been recorded yet.
 export function scoreFromMarks(marksLost, marksTotal) {
