@@ -9,22 +9,23 @@
 // subject is captioned with its name everywhere it appears, so hue is never
 // doing the identifying on its own.
 const SUBJECT_ACCENTS = [
-  '#a20081', // magenta
-  '#00c756', // green
-  '#0094ff', // blue
-  '#346d26', // moss
-  '#f771a0', // pink
-  '#9657e8', // purple
-  '#c5a300', // gold
-  '#009690', // teal
-  '#b093e5', // lavender
+  '#0071a1', // petrol blue
+  '#d1649c', // dusty rose
+  '#8d9900', // olive
+  '#7685e9', // periwinkle
+  '#107823', // forest green
+  '#864a81', // plum
+  '#10a49e', // teal
 ];
 
-// The header's two buttons keep the indigo and amber they have always had.
-// The subject hues above were then chosen around them: every one sits at
-// least 20 in OKLab from both, five times the separation of the orange that
-// used to collide with the Goals button, while staying at least 15 from each
-// other so no two subjects look alike either.
+// The header's two buttons keep the indigo and amber they have always had,
+// and the subject hues above are chosen around them: each sits at least 16
+// in OKLab from both, against the 12.1 of the orange that used to collide
+// with the Goals button, and at least 15 from every other subject.
+//
+// They are also deliberately restrained — average chroma 0.13 rather than
+// the 0.19 of the set before, which read as fluorescent. Muted enough to sit
+// under text all day, saturated enough not to look like grey.
 const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
