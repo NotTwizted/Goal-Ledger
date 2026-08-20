@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ChevronRight, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, FileSearch, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { computeProgress } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
@@ -8,6 +8,7 @@ import { navigate, paths } from '../lib/router';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import TopicDetail from '../components/TopicDetail';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PaperScanDialog from '../components/PaperScanDialog';
 
 // Topics stay listed down the left; picking one opens it beside the list
 // rather than replacing it, so moving between topics is one click.
@@ -17,6 +18,7 @@ export default function PaperPage({ subject, paper }) {
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [pendingTopic, setPendingTopic] = useState(null);
+  const [scanning, setScanning] = useState(false);
 
   const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
@@ -90,9 +92,18 @@ export default function PaperPage({ subject, paper }) {
           <ChevronRight size={16} className="text-stone-400" />
         </button>
         {editing && (
+          <button
+            onClick={() => setScanning(true)}
+            title="Read the question list out of a PDF — free, nothing leaves your browser"
+            className="shrink-0 flex items-center gap-1.5 text-xs text-stone-600 border border-stone-300 rounded-lg px-3 py-3"
+          >
+            <FileSearch size={14} /> <span className="hidden sm:inline">Scan</span>
+          </button>
+        )}
+        {editing && (
           <label
             data-tappable
-            title="Upload marked past papers — several at once is fine"
+            title="Send the marked paper to Claude to be read — needs an API key"
             className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer border border-stone-300 rounded-lg px-3 py-3"
           >
             {uploadProgress ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
@@ -173,6 +184,15 @@ export default function PaperPage({ subject, paper }) {
             />
           )}
         </div>
+      )}
+
+      {scanning && (
+        <PaperScanDialog
+          subject={subject}
+          paper={paper}
+          topics={paperTopics}
+          onClose={() => setScanning(false)}
+        />
       )}
 
       {pendingTopic && (
