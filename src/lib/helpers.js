@@ -119,6 +119,21 @@ export function masteryFromScore(percent) {
   return 1; // Shaky
 }
 
+// A unit keeps every mark recorded against it and shows their average.
+// Ledgers written when a unit held a single number read as one mark.
+export function unitScores(unit) {
+  if (Array.isArray(unit.scores)) return unit.scores;
+  const legacy = unit.scorePercent;
+  if (legacy === null || legacy === undefined || legacy === '') return [];
+  return [{ id: 'legacy', percent: Number(legacy), label: 'Recorded' }];
+}
+
+export function averageScore(unit) {
+  const scores = unitScores(unit);
+  if (!scores.length) return null;
+  return Math.round(scores.reduce((sum, s) => sum + Number(s.percent), 0) / scores.length);
+}
+
 export function clampPercent(value) {
   if (value === null || value === undefined || value === '') return '';
   const n = Number(value);

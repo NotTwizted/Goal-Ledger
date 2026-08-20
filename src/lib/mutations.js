@@ -1,5 +1,6 @@
 import {
   STATUS_ORDER,
+  averageScore,
   clampPercent,
   findTextMatch,
   masteryFromScore,
@@ -7,6 +8,8 @@ import {
   normText,
   scoreFromMarks,
   syncTopicsWithSeed,
+  uid,
+  unitScores,
 } from './helpers';
 
 // Every function here takes the current subject list and returns the next one,
@@ -36,28 +39,27 @@ const advanceStatus = (unit) => {
   };
 };
 
-const withScore = (unit, value) => {
-  const scorePercent = clampPercent(value);
-  return {
-    ...unit,
-    scorePercent: scorePercent === '' ? null : scorePercent,
-    mastery: masteryFromScore(scorePercent),
-  };
+// scorePercent stays written as the average so progress, sorting and the
+// mastery stamp keep reading one number.
+const withScores = (unit, scores) => {
+  const next = { ...unit, scores };
+  const average = averageScore(next);
+  return { ...next, scorePercent: average, mastery: average === null ? 0 : masteryFromScore(average) };
+};
+
+const addScore = (unit, percent, label) => {
+  const value = clampPercent(percent);
+  if (value === '') return unit;
+  return withScores(unit, [...unitScores(unit), { id: uid(), percent: value, label }]);
 };
 
 // Folds marks from an uploaded paper into a unit's running totals and
 // recalculates its score percentage from them.
-const withMarks = (unit, marksLost, marksAvailable) => {
-  // Ledgers written before scores were percentages stored a bare "marks lost"
-  // with no total to measure it against, so that figure is dropped rather than
-  // folded into the first percentage.
-  const priorTotal = Number(unit.marksTotal) || 0;
-  const priorLost = priorTotal > 0 ? (Number(unit.marksLost) || 0) : 0;
-  const lost = priorLost + marksLost;
-  const total = priorTotal + (Number(marksAvailable) || 0);
-  const scorePercent = scoreFromMarks(lost, total);
-  if (scorePercent === null) return { ...unit, marksLost: lost, marksTotal: total };
-  return { ...unit, marksLost: lost, marksTotal: total, scorePercent, mastery: masteryFromScore(scorePercent) };
+// One upload contributes one mark per unit, however many questions on it
+// touched that unit — so a paper counts once in the average, like a test does.
+const withPaperMarks = (unit, lost, available, label) => {
+  const percent = scoreFromMarks(lost, available);
+  return percent === null ? unit : addScore(unit, percent, label);
 };
 
 export function addTopic(subjects, subjectId, name, paper) {
@@ -79,8 +81,19 @@ export function cycleTopicStatus(subjects, subjectId, topicId) {
   return mapSubject(subjects, subjectId, s => mapTopic(s, topicId, advanceStatus));
 }
 
-export function setTopicScore(subjects, subjectId, topicId, value) {
-  return mapSubject(subjects, subjectId, s => mapTopic(s, topicId, t => withScore(t, value)));
+const mapUnit = (subject, topicId, subtopicId, fn) =>
+  mapTopic(subject, topicId, t => (subtopicId
+    ? { ...t, subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? fn(st) : st)) }
+    : fn(t)));
+
+export function addUnitScore(subjects, subjectId, topicId, subtopicId, value, label) {
+  return mapSubject(subjects, subjectId, s =>
+    mapUnit(s, topicId, subtopicId, u => addScore(u, value, label)));
+}
+
+export function removeUnitScore(subjects, subjectId, topicId, subtopicId, scoreId) {
+  return mapSubject(subjects, subjectId, s =>
+    mapUnit(s, topicId, subtopicId, u => withScores(u, unitScores(u).filter(x => x.id !== scoreId))));
 }
 
 export function setTopicMastery(subjects, subjectId, topicId, value) {
@@ -109,14 +122,6 @@ export function cycleSubtopicStatus(subjects, subjectId, topicId, subtopicId) {
     mapTopic(s, topicId, t => ({
       ...t,
       subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? advanceStatus(st) : st)),
-    })));
-}
-
-export function setSubtopicScore(subjects, subjectId, topicId, subtopicId, value) {
-  return mapSubject(subjects, subjectId, s =>
-    mapTopic(s, topicId, t => ({
-      ...t,
-      subtopics: (t.subtopics || []).map(st => (st.id === subtopicId ? withScore(st, value) : st)),
     })));
 }
 
@@ -153,34 +158,52 @@ export function applySeedChecklist(subjects, subjectId, seed) {
   });
 }
 
+// Groups a paper's mistakes onto the units they belong to, then records one
+// mark per unit — a paper is a single sitting, so it counts once.
+function tallyMarks(mistakes, resolve) {
+  const tally = new Map();
+  mistakes.forEach(m => {
+    if (typeof m.marksLost !== 'number') return;
+    const unitId = resolve(m);
+    if (!unitId) return;
+    const entry = tally.get(unitId) || { lost: 0, available: 0 };
+    entry.lost += m.marksLost;
+    entry.available += Number(m.marksAvailable) || 0;
+    tally.set(unitId, entry);
+  });
+  return tally;
+}
+
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
+    const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
+
     const topics = s.topics.map(t => {
       if ((t.paper || 'Paper 1') !== paper) return t;
-      let topic = { ...t };
-      const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
+      const hasSubtopics = t.subtopics && t.subtopics.length > 0;
 
-      record.mistakes.forEach(m => {
-        if (typeof m.marksLost !== 'number' || !m.topic) return;
-        if (hasSubtopics) {
-          const match = findTextMatch(m.topic, topic.subtopics);
-          if (!match) return;
-          topic = {
-            ...topic,
-            subtopics: topic.subtopics.map(st =>
-              st.id === match.id ? withMarks(st, m.marksLost, m.marksAvailable) : st),
-          };
-          return;
-        }
+      const tally = tallyMarks(record.mistakes, m => {
+        if (!m.topic) return null;
+        if (hasSubtopics) return findTextMatch(m.topic, t.subtopics)?.id || null;
         const a = normText(m.topic);
-        const b = normText(topic.name);
-        if (a === b || a.includes(b) || b.includes(a)) {
-          topic = withMarks(topic, m.marksLost, m.marksAvailable);
-        }
+        const b = normText(t.name);
+        return (a === b || a.includes(b) || b.includes(a)) ? t.id : null;
       });
+      if (!tally.size) return t;
 
-      return topic;
+      if (!hasSubtopics) {
+        const { lost, available } = tally.get(t.id);
+        return withPaperMarks(t, lost, available, label);
+      }
+      return {
+        ...t,
+        subtopics: t.subtopics.map(st => {
+          const marks = tally.get(st.id);
+          return marks ? withPaperMarks(st, marks.lost, marks.available, label) : st;
+        }),
+      };
     });
+
     return { ...s, topics, pastPapers: [...(s.pastPapers || []), record] };
   });
 }
@@ -195,15 +218,19 @@ export function deletePastPaper(subjects, subjectId, pastPaperId) {
 export function addUnitTestRecord(subjects, subjectId, topicId, record) {
   return mapSubject(subjects, subjectId, s =>
     mapTopic(s, topicId, t => {
-      let subtopics = t.subtopics || [];
-      record.details.forEach(d => {
-        if (typeof d.marksLost !== 'number' || !d.subtopic) return;
-        const match = findTextMatch(d.subtopic, subtopics);
-        if (!match) return;
-        subtopics = subtopics.map(st =>
-          st.id === match.id ? withMarks(st, d.marksLost, d.marksAvailable) : st);
-      });
-      return { ...t, subtopics, unitTests: [...(t.unitTests || []), record] };
+      const subtopics = t.subtopics || [];
+      const tally = tallyMarks(
+        record.details.map(d => ({ ...d, topic: d.subtopic })),
+        d => findTextMatch(d.subtopic, subtopics)?.id || null
+      );
+      return {
+        ...t,
+        subtopics: subtopics.map(st => {
+          const marks = tally.get(st.id);
+          return marks ? withPaperMarks(st, marks.lost, marks.available, 'Unit test') : st;
+        }),
+        unitTests: [...(t.unitTests || []), record],
+      };
     }));
 }
 

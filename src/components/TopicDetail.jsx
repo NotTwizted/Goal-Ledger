@@ -4,7 +4,7 @@ import { STATUS_META } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
-import ScoreField from './ScoreField';
+import { ScorePanel, ScoreSummary } from './ScoreMarks';
 import ConfirmDialog from './ConfirmDialog';
 
 // The right-hand pane: everything about the one topic selected in the list.
@@ -14,6 +14,7 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState('');
   const [pendingSubtopic, setPendingSubtopic] = useState(null);
+  const [openScores, setOpenScores] = useState(null);
 
   const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
   const StatusIcon = STATUS_META[topic.status].icon;
@@ -62,11 +63,18 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
 
       {!hasSubtopics && (
         <div className="mb-4">
-          <ScoreField
-            value={topic.scorePercent}
-            mastery={topic.mastery}
-            onChange={v => updateSubjects(mutate.setTopicScore(subjects, subject.id, topic.id, v))}
+          <ScoreSummary
+            unit={topic}
+            open={openScores === topic.id}
+            onToggle={() => setOpenScores(id => (id === topic.id ? null : topic.id))}
           />
+          {openScores === topic.id && (
+            <ScorePanel
+              unit={topic}
+              onAdd={v => updateSubjects(mutate.addUnitScore(subjects, subject.id, topic.id, null, v))}
+              onRemove={id => updateSubjects(mutate.removeUnitScore(subjects, subject.id, topic.id, null, id))}
+            />
+          )}
         </div>
       )}
 
@@ -75,29 +83,38 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
           {topic.subtopics.map(st => {
             const SubIcon = STATUS_META[st.status].icon;
             return (
-              <div key={st.id} className="flex items-center gap-3 py-2">
-                <button
-                  onClick={() => updateSubjects(mutate.cycleSubtopicStatus(subjects, subject.id, topic.id, st.id))}
-                  title={STATUS_META[st.status].label}
-                  className={`shrink-0 ${STATUS_META[st.status].ring}`}
-                >
-                  <SubIcon size={17} />
-                </button>
-                <span className={`flex-1 text-sm leading-snug ${st.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-800'}`}>
-                  {st.name}
-                </span>
-                <ScoreField
-                  value={st.scorePercent}
-                  mastery={st.mastery}
-                  onChange={v => updateSubjects(mutate.setSubtopicScore(subjects, subject.id, topic.id, st.id, v))}
-                />
-                {editing && (
+              <div key={st.id} className="py-2">
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setPendingSubtopic(st)}
-                    className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
+                    onClick={() => updateSubjects(mutate.cycleSubtopicStatus(subjects, subject.id, topic.id, st.id))}
+                    title={STATUS_META[st.status].label}
+                    className={`shrink-0 ${STATUS_META[st.status].ring}`}
                   >
-                    <X size={14} />
+                    <SubIcon size={17} />
                   </button>
+                  <span className={`flex-1 text-sm leading-snug ${st.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-800'}`}>
+                    {st.name}
+                  </span>
+                  <ScoreSummary
+                    unit={st}
+                    open={openScores === st.id}
+                    onToggle={() => setOpenScores(id => (id === st.id ? null : st.id))}
+                  />
+                  {editing && (
+                    <button
+                      onClick={() => setPendingSubtopic(st)}
+                      className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {openScores === st.id && (
+                  <ScorePanel
+                    unit={st}
+                    onAdd={v => updateSubjects(mutate.addUnitScore(subjects, subject.id, topic.id, st.id, v))}
+                    onRemove={id => updateSubjects(mutate.removeUnitScore(subjects, subject.id, topic.id, st.id, id))}
+                  />
                 )}
               </div>
             );
