@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { MASTERY_LEVELS, averageScore, parseMarkInput, unitScores } from '../lib/helpers';
+import { useLedger } from '../lib/ledger';
 
 // The compact half: the average, how many marks it came from, and the stamp.
 // Clicking opens the panel below.
@@ -27,7 +28,10 @@ export function ScoreSummary({ unit, open, onToggle }) {
 }
 
 // The expanded half: every mark recorded, and a field to add another.
+// Adding a mark is everyday recording and stays available; removing one
+// discards evidence, so it waits for Edit like the other deletions.
 export function ScorePanel({ unit, onAdd, onRemove }) {
+  const { editing } = useLedger();
   const [draft, setDraft] = useState('');
   const scores = unitScores(unit);
 
@@ -46,7 +50,7 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
           {scores.map(score => (
             <span
               key={score.id}
-              className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 bg-white border border-stone-300 rounded-full"
+              className={`inline-flex items-center gap-1 pl-2 py-0.5 bg-white border border-stone-300 rounded-full ${editing ? 'pr-1' : 'pr-2'}`}
             >
               {score.total > 0 && (
                 <span className="font-mono text-[11px] text-stone-800">{score.scored}/{score.total}</span>
@@ -55,13 +59,15 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
                 {score.percent}%
               </span>
               {score.label && <span className="text-[9px] text-stone-400">{score.label}</span>}
-              <button
-                onClick={() => onRemove(score.id)}
-                title="Remove this mark"
-                className="p-0.5 text-stone-300 hover:text-rose-600"
-              >
-                <X size={11} />
-              </button>
+              {editing && (
+                <button
+                  onClick={() => onRemove(score.id)}
+                  title="Remove this mark"
+                  className="p-0.5 text-stone-300 hover:text-rose-600"
+                >
+                  <X size={11} />
+                </button>
+              )}
             </span>
           ))}
         </div>
