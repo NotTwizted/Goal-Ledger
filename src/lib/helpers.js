@@ -287,16 +287,45 @@ export function newUnit(name) {
 
 // Rebuilds a subject's checklist so the standard topics always sit in their
 // canonical syllabus order, whatever has been deleted since the last load.
-// Anything the student added themselves keeps its progress and is kept at the
-// end of the list rather than being dropped.
 //
 // Deletions are archived rather than discarded, so a topic or subtopic that
 // comes back returns with the status, score, and completion date it had when
-// it was removed — restoring the checklist never costs you recorded work.
-function mergeSeedTopic(existing, seedTopic, paper) {
+// it was removed — restoring the checklist never costs recorded work.
+//
+// Topics the checklist created are marked, so that when the syllabus data is
+// revised the entries it no longer lists can be cleared away instead of
+// lingering on the wrong paper. Anything the student typed themselves is
+// never touched.
+
+// Names earlier versions of the checklist used and no longer do. A ledger
+// built before entries were marked cannot say what the checklist created, so
+// this is the evidence instead — without it, a topic typed by hand would be
+// indistinguishable from a superseded one and swept away with it.
+const SUPERSEDED_TOPICS = new Set([
+  // Computer Science, when its theory and programming papers were split
+  'data representation',
+  'communication and internet technologies',
+  'data structures',
+  'further computational thinking',
+  'further programming',
+  'further computer architecture',
+  'further communication and networking',
+]);
+
+// A unit nobody has worked on: nothing ticked, nothing marked, and the same
+// true of everything inside it.
+function isUntouched(unit) {
+  if (unit.status && unit.status !== 'not-started') return false;
+  if (unitScores(unit).length) return false;
+  return (unit.subtopics || []).every(isUntouched);
+}
+
+function mergeSeedTopic(existing, seedTopic, paper, legacy) {
   const seedSubtopics = seedTopic.subtopics || [];
+  const fresh = (name) => ({ ...newUnit(name), fromSeed: true });
+
   if (!existing) {
-    return { ...newUnit(seedTopic.name), paper, subtopics: seedSubtopics.map(newUnit) };
+    return { ...fresh(seedTopic.name), paper, subtopics: seedSubtopics.map(fresh) };
   }
 
   const live = [...(existing.subtopics || [])];
@@ -312,22 +341,32 @@ function mergeSeedTopic(existing, seedTopic, paper) {
 
   const subtopics = seedSubtopics.map(name => {
     const found = claim(name);
-    return found ? { ...found, name } : newUnit(name);
+    return found ? { ...found, name, fromSeed: true } : fresh(name);
   });
+
+  // Whatever the syllabus no longer lists: set aside if the checklist put it
+  // there, kept if the student did.
+  const superseded = (st) => st.fromSeed === true
+    || (legacy && SUPERSEDED_TOPICS.has(normText(st.name)) && isUntouched(st));
 
   return {
     ...existing,
     name: seedTopic.name,
+    fromSeed: true,
     // The syllabus decides which paper a standard topic sits under, so a topic
     // moves when the syllabus says it moved. Keeping whichever paper it was
     // first loaded onto stranded topics on the old paper when one was split.
     paper,
-    subtopics: [...subtopics, ...live],
-    archivedSubtopics: archived,
+    subtopics: [...subtopics, ...live.filter(st => !superseded(st))],
+    archivedSubtopics: [...archived, ...live.filter(superseded)],
   };
 }
 
 export function syncTopicsWithSeed(topics, seed, archivedTopics = []) {
+  // A ledger built before entries were marked cannot say which topics the
+  // checklist created, so on that one pass an untouched leftover is taken to
+  // be one of ours. Anything with progress recorded against it survives.
+  const legacy = !topics.some(t => t.fromSeed);
   const live = [...topics];
   const archived = [...archivedTopics];
 
@@ -344,9 +383,15 @@ export function syncTopicsWithSeed(topics, seed, archivedTopics = []) {
   const ordered = [];
   Object.entries(seed).forEach(([paper, seedTopics]) => {
     seedTopics.forEach(seedTopic => {
-      ordered.push(mergeSeedTopic(claim(seedTopic.name, paper), seedTopic, paper));
+      ordered.push(mergeSeedTopic(claim(seedTopic.name, paper), seedTopic, paper, legacy));
     });
   });
 
-  return { topics: [...ordered, ...live], archivedTopics: archived };
+  const superseded = (t) => t.fromSeed === true
+    || (legacy && SUPERSEDED_TOPICS.has(normText(t.name)) && isUntouched(t));
+
+  return {
+    topics: [...ordered, ...live.filter(t => !superseded(t))],
+    archivedTopics: [...archived, ...live.filter(superseded)],
+  };
 }
