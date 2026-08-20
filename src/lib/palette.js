@@ -10,12 +10,10 @@
 // doing the identifying on its own.
 const SUBJECT_ACCENTS = [
   '#0071a1', // petrol blue
-  '#d1649c', // dusty rose
-  '#8d9900', // olive
-  '#7685e9', // periwinkle
-  '#107823', // forest green
   '#864a81', // plum
-  '#10a49e', // teal
+  '#6f8c00', // moss
+  '#006a3b', // pine
+  '#8071d7', // soft violet
 ];
 
 // The header's two buttons keep the indigo and amber they have always had,
@@ -23,9 +21,11 @@ const SUBJECT_ACCENTS = [
 // in OKLab from both, against the 12.1 of the orange that used to collide
 // with the Goals button, and at least 15 from every other subject.
 //
-// They are also deliberately restrained — average chroma 0.13 rather than
-// the 0.19 of the set before, which read as fluorescent. Muted enough to sit
-// under text all day, saturated enough not to look like grey.
+// Restraint is the binding constraint here, not the count. Muted colours sit
+// closer together by definition, so every hue kept is one fewer that can be
+// told apart: five is what this depth of tone supports. The earlier set had
+// three hues at lightness 0.65 which read as bright beside the rest — those
+// are gone, and nothing here goes above 0.61.
 const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
