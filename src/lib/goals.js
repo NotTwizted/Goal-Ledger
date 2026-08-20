@@ -53,6 +53,23 @@ const VOCABULARIES = [
 
 const DEFAULT_EXAMPLES = ['Do 10 pullups', 'Run 5km', 'Read 12 books'];
 
+// "Do 10 pullups" has already said what the target is, so asking for it again
+// is asking twice. The first number in the name is taken as the target unless
+// one has been set by hand.
+export function inferredTarget(name) {
+  const match = String(name || '').match(/\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const value = Number(match[0]);
+  return value > 0 ? value : null;
+}
+
+// What the goal is measured against: whatever was set by hand, else whatever
+// its name says.
+export function effectiveTarget(unit) {
+  if (unit?.target !== null && unit?.target !== undefined && unit.target !== '') return Number(unit.target);
+  return inferredTarget(unit?.name);
+}
+
 function vocabularyFor(text) {
   if (!text) return null;
   return VOCABULARIES.find(v => v.match.test(text)) || null;

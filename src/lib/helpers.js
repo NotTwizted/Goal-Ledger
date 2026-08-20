@@ -1,4 +1,5 @@
 import { Circle, CircleDot, CheckCircle2 } from 'lucide-react';
+import { effectiveTarget } from './goals';
 
 export const STATUS_ORDER = ['not-started', 'in-progress', 'done'];
 export const STATUS_META = {
@@ -29,6 +30,21 @@ export function flattenUnits(topics) {
 // climbs towards the mastery threshold and reaching 100% when it gets there.
 export function unitCompletion(unit) {
   if (unit.status === 'done') return 1;
+
+  // A goal measured against a target is simply that fraction of it: two
+  // pullups of four is half done, not most of the way. The split below is for
+  // study, where covering the material and proving it are different things.
+  //
+  // Keyed on the goal actually having figures recorded, not on its name
+  // containing a number — study is full of topics called "Group 2" and
+  // "Period 3 oxides", and none of them are counting towards two or three.
+  const measured = unit.current !== null && unit.current !== undefined;
+  if (measured) {
+    const target = Number(effectiveTarget(unit)) || 0;
+    if (target <= 0) return 0;
+    return Math.min(1, (Number(unit.current) || 0) / target);
+  }
+
   const covered = unit.status !== 'not-started' ? 0.5 : 0;
   const average = averageScore(unit);
   const earned = average === null ? 0 : Math.min(1, average / MASTERY_THRESHOLD) * 0.5;

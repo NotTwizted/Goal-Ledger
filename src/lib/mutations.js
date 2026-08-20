@@ -11,6 +11,7 @@ import {
   uid,
   unitScores,
 } from './helpers';
+import { effectiveTarget } from './goals';
 
 // Every function here takes the current subject list and returns the next one,
 // so pages never have to hand-roll a nested spread.
@@ -118,44 +119,46 @@ export function removeUnitScore(subjects, subjectId, topicId, subtopicId, scoreI
 }
 
 // A general goal is measured against a target rather than marked out of a
-// paper: how many you can do now, how many you are aiming for. Status follows
-// from the two, so reaching the target is what completes it.
-export function setGoalProgress(subjects, subjectId, topicId, field, value) {
+// paper: how many you can do now against how many you are aiming for. The
+// target usually comes from the goal's own name. Status follows from the two,
+// so reaching the target is what completes it.
+const applyGoalProgress = (unit, field, number) => {
+  const next = { ...unit, [field]: number };
+  const target = Number(effectiveTarget(next)) || 0;
+  const current = Number(next.current) || 0;
+
+  if (target <= 0) return { ...next, scorePercent: null };
+
+  const percent = Math.min(100, Math.round((current / target) * 100));
+  const status = current >= target ? 'done' : current > 0 ? 'in-progress' : 'not-started';
+  return {
+    ...next,
+    scorePercent: percent,
+    mastery: masteryFromScore(percent),
+    status,
+    completedAt: status === 'done' ? (unit.completedAt || new Date().toISOString()) : null,
+    coveredAt: status === 'in-progress' ? (unit.coveredAt || new Date().toISOString()) : unit.coveredAt,
+  };
+};
+
+export function setGoalProgress(subjects, subjectId, topicId, subtopicId, field, value) {
   const number = value === '' ? null : Math.max(0, Number(value));
   if (number !== null && Number.isNaN(number)) return subjects;
-
   return mapSubject(subjects, subjectId, s =>
-    mapTopic(s, topicId, t => {
-      const next = { ...t, [field]: number };
-      const target = Number(next.target) || 0;
-      const current = Number(next.current) || 0;
-
-      if (target <= 0) return { ...next, scorePercent: null };
-
-      const percent = Math.min(100, Math.round((current / target) * 100));
-      const status = current >= target ? 'done' : current > 0 ? 'in-progress' : 'not-started';
-      return {
-        ...next,
-        scorePercent: percent,
-        mastery: masteryFromScore(percent),
-        status,
-        completedAt: status === 'done' ? (t.completedAt || new Date().toISOString()) : null,
-        coveredAt: status === 'in-progress' ? (t.coveredAt || new Date().toISOString()) : t.coveredAt,
-      };
-    }));
+    mapUnit(s, topicId, subtopicId, u => applyGoalProgress(u, field, number)));
 }
 
-// A goal with no target is a plain thing to be done, so its circle cycles the
-// whole way round by hand — nothing else can decide it is finished.
-export function cycleGoalStatus(subjects, subjectId, topicId) {
+// A goal with no number in it — "book a venue" — is a plain thing to be done,
+// so its circle cycles the whole way round by hand.
+export function cycleGoalStatus(subjects, subjectId, topicId, subtopicId) {
   return mapSubject(subjects, subjectId, s =>
-    mapTopic(s, topicId, t => {
-      const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(t.status) + 1) % STATUS_ORDER.length];
+    mapUnit(s, topicId, subtopicId, u => {
+      const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(u.status) + 1) % STATUS_ORDER.length];
       return {
-        ...t,
+        ...u,
         status: nextStatus,
         completedAt: nextStatus === 'done' ? new Date().toISOString() : null,
-        coveredAt: nextStatus === 'in-progress' ? new Date().toISOString() : t.coveredAt,
+        coveredAt: nextStatus === 'in-progress' ? new Date().toISOString() : u.coveredAt,
       };
     }));
 }
