@@ -139,6 +139,25 @@ export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens
   return extractJson(cleaned);
 }
 
+// A plain text request, used to write the feedback for a paper that had to be
+// read in more than one part.
+export async function callClaudeText(promptText, maxTokens) {
+  const response = await fetch('/api/extract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: [{ type: 'text', text: promptText }] }],
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || `Request failed (${response.status})`);
+  const text = (data.content || []).map(b => b.text || '').join('\n').replace(/```json|```/g, '').trim();
+  if (!text) throw new Error('Empty response from the model.');
+  return extractJson(text);
+}
+
 export function findTextMatch(name, candidates) {
   const n = normText(name);
   if (!n) return null;

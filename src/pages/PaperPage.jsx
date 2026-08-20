@@ -43,7 +43,8 @@ export default function PaperPage({ subject, paper }) {
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const record = await extractPastPaper(files[i], paper, topicNames);
+        const record = await extractPastPaper(files[i], paper, topicNames,
+          (part, parts) => setUploadProgress({ done: i, total: files.length, part: part + 1, parts }));
         next = mutate.addPastPaperRecord(next, subject.id, paper, record);
       } catch (e) {
         // Keep what actually went wrong — a swallowed message is why every
@@ -95,8 +96,11 @@ export default function PaperPage({ subject, paper }) {
             className="shrink-0 flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer border border-stone-300 rounded-lg px-3 py-3"
           >
             {uploadProgress ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-            {uploadProgress && uploadProgress.total > 1 && (
-              <span className="font-mono text-[10px]">{uploadProgress.done}/{uploadProgress.total}</span>
+            {uploadProgress && (uploadProgress.total > 1 || uploadProgress.parts > 1) && (
+              <span className="font-mono text-[10px]">
+                {uploadProgress.total > 1 ? `${uploadProgress.done + 1}/${uploadProgress.total}` : ''}
+                {uploadProgress.parts > 1 ? ` p${uploadProgress.part}/${uploadProgress.parts}` : ''}
+              </span>
             )}
             <input
               type="file"

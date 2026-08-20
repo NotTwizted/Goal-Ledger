@@ -39,7 +39,8 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const record = await extractUnitTest(files[i], topic.name, subtopicNames);
+        const record = await extractUnitTest(files[i], topic.name, subtopicNames,
+          (part, parts) => setTestProgress({ done: i, total: files.length, part: part + 1, parts }));
         next = mutate.addUnitTestRecord(next, subject.id, topic.id, record);
       } catch (e) {
         failed.push({ name: files[i].name, reason: e.message });
@@ -163,7 +164,9 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
           <label data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer">
             {testProgress ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
             {testProgress
-              ? (testProgress.total > 1 ? `Reading ${testProgress.done} of ${testProgress.total}…` : 'Analyzing…')
+              ? (testProgress.parts > 1
+                ? `Reading part ${testProgress.part} of ${testProgress.parts}…`
+                : testProgress.total > 1 ? `Reading ${testProgress.done + 1} of ${testProgress.total}…` : 'Analyzing…')
               : 'Upload unit tests'}
             <input
               type="file"
