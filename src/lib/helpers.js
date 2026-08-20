@@ -229,8 +229,8 @@ export function pastPaperLabel(pp) {
 export function mathsComponentTag(s) {
   if (s.name !== 'Maths' || !Array.isArray(s.components)) return '';
   const tags = [];
-  if (s.components.includes('Statistics')) tags.push('Stats');
-  if (s.components.includes('Mechanics')) tags.push('Mech');
+  if (s.components.includes('Statistics')) tags.push('Statistics');
+  if (s.components.includes('Mechanics')) tags.push('Mechanics');
   return tags.length ? ` (${tags.join(', ')})` : '';
 }
 
