@@ -318,7 +318,10 @@ function mergeSeedTopic(existing, seedTopic, paper) {
   return {
     ...existing,
     name: seedTopic.name,
-    paper: existing.paper || paper,
+    // The syllabus decides which paper a standard topic sits under, so a topic
+    // moves when the syllabus says it moved. Keeping whichever paper it was
+    // first loaded onto stranded topics on the old paper when one was split.
+    paper,
     subtopics: [...subtopics, ...live],
     archivedSubtopics: archived,
   };
