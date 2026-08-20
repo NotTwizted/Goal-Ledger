@@ -18,7 +18,7 @@ async function fileToContentBlock(file) {
 export async function extractChecklistDraft(file, isStudy) {
   const promptText = isStudy
     ? 'This file shows content from a syllabus or specification. Extract the main topics and, under each, its subtopics. Cover every page — do not stop partway through. Respond with ONLY a JSON array of objects, no other text, no markdown fences. Format: [{"topic": "Cell structure", "subtopics": ["Prokaryotic vs eukaryotic cells", "Organelles"]}]. If a main topic has no subtopics listed, use an empty array.'
-    : 'This file shows a list of tasks or milestones. Extract every individual item as a short line. Respond with ONLY a JSON array of strings, no other text, no markdown fences. Example: ["Book a venue", "Send invitations"]';
+    : 'This file shows a list of goals. Extract every individual item as a short line. Respond with ONLY a JSON array of strings, no other text, no markdown fences. Example: ["Do 10 pullups", "Run 5km"]';
 
   const parsed = await callClaudeWithFile(await fileToContentBlock(file), promptText, 8000);
   if (!Array.isArray(parsed) || parsed.length === 0) {

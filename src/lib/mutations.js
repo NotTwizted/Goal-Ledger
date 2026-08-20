@@ -1,4 +1,5 @@
 import {
+  STATUS_ORDER,
   averageScore,
   isMastered,
   findTextMatch,
@@ -114,6 +115,49 @@ export function addUnitScore(subjects, subjectId, topicId, subtopicId, input, la
 export function removeUnitScore(subjects, subjectId, topicId, subtopicId, scoreId) {
   return mapSubject(subjects, subjectId, s =>
     mapUnit(s, topicId, subtopicId, u => withScores(u, unitScores(u).filter(x => x.id !== scoreId))));
+}
+
+// A general goal is measured against a target rather than marked out of a
+// paper: how many you can do now, how many you are aiming for. Status follows
+// from the two, so reaching the target is what completes it.
+export function setGoalProgress(subjects, subjectId, topicId, field, value) {
+  const number = value === '' ? null : Math.max(0, Number(value));
+  if (number !== null && Number.isNaN(number)) return subjects;
+
+  return mapSubject(subjects, subjectId, s =>
+    mapTopic(s, topicId, t => {
+      const next = { ...t, [field]: number };
+      const target = Number(next.target) || 0;
+      const current = Number(next.current) || 0;
+
+      if (target <= 0) return { ...next, scorePercent: null };
+
+      const percent = Math.min(100, Math.round((current / target) * 100));
+      const status = current >= target ? 'done' : current > 0 ? 'in-progress' : 'not-started';
+      return {
+        ...next,
+        scorePercent: percent,
+        mastery: masteryFromScore(percent),
+        status,
+        completedAt: status === 'done' ? (t.completedAt || new Date().toISOString()) : null,
+        coveredAt: status === 'in-progress' ? (t.coveredAt || new Date().toISOString()) : t.coveredAt,
+      };
+    }));
+}
+
+// A goal with no target is a plain thing to be done, so its circle cycles the
+// whole way round by hand — nothing else can decide it is finished.
+export function cycleGoalStatus(subjects, subjectId, topicId) {
+  return mapSubject(subjects, subjectId, s =>
+    mapTopic(s, topicId, t => {
+      const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(t.status) + 1) % STATUS_ORDER.length];
+      return {
+        ...t,
+        status: nextStatus,
+        completedAt: nextStatus === 'done' ? new Date().toISOString() : null,
+        coveredAt: nextStatus === 'in-progress' ? new Date().toISOString() : t.coveredAt,
+      };
+    }));
 }
 
 export function setTopicMastery(subjects, subjectId, topicId, value) {

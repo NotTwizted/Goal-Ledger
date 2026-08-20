@@ -311,7 +311,7 @@ export default function DashboardPage({ category }) {
                   </span>
                 )}
                 <span className="shrink-0 font-mono text-xs text-stone-500">
-                  {s.topics.length} {isStudy ? 'topic' : 'milestone'}{s.topics.length !== 1 ? 's' : ''}
+                  {s.topics.length} {isStudy ? 'topic' : 'goal'}{s.topics.length !== 1 ? 's' : ''}
                 </span>
               </div>
               {s.spec && <p className="text-xs text-stone-500 mt-0.5 ml-5">{s.spec}</p>}
@@ -352,7 +352,7 @@ export default function DashboardPage({ category }) {
           title={`Delete ${pendingDelete.name}?`}
           body={
             pendingDelete.topics.length
-              ? `This removes the ${isStudyCategory ? 'subject' : 'goal'} and all ${pendingDelete.topics.length} of its ${isStudyCategory ? 'topics' : 'milestones'}, along with every score and past paper recorded against it. This one cannot be undone.`
+              ? `This removes the ${isStudyCategory ? 'subject' : 'goal'} and all ${pendingDelete.topics.length} of its ${isStudyCategory ? 'topics' : 'goals'}, along with every score and past paper recorded against it. This one cannot be undone.`
               : 'This cannot be undone.'
           }
           onConfirm={confirmDelete}

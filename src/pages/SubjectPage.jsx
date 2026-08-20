@@ -12,14 +12,14 @@ import * as mutate from '../lib/mutations';
 import { extractChecklistDraft } from '../lib/uploads';
 import { navigate, paths } from '../lib/router';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
-import MilestoneRow from '../components/MilestoneRow';
+import GoalRow from '../components/GoalRow';
 
 export default function SubjectPage({ subject }) {
   const { subjects, updateSubjects, editing } = useLedger();
   const isStudy = subject.category === 'study';
   const seed = isStudy ? getSeedData(subject) : null;
 
-  const [milestoneName, setMilestoneName] = useState('');
+  const [goalName, setGoalName] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importPaper, setImportPaper] = useState('Paper 1');
@@ -43,11 +43,11 @@ export default function SubjectPage({ subject }) {
   const specUrl = isStudy ? getSpecUrl(subject.level, subject.name, subject.board) : null;
   const papersInUse = [...new Set(subject.topics.map(t => t.paper || 'Paper 1'))];
 
-  const addMilestone = () => {
-    const name = milestoneName.trim();
+  const addGoal = () => {
+    const name = goalName.trim();
     if (!name) return;
     updateSubjects(mutate.addTopic(subjects, subject.id, name, null));
-    setMilestoneName('');
+    setGoalName('');
   };
 
   const runImport = () => {
@@ -151,14 +151,14 @@ export default function SubjectPage({ subject }) {
       {editing && !isStudy && (
         <div className="flex gap-2 mb-2">
           <input
-            value={milestoneName}
-            onChange={e => setMilestoneName(e.target.value)}
-            placeholder="Add a milestone or task…"
+            value={goalName}
+            onChange={e => setGoalName(e.target.value)}
+            placeholder="Add a goal…"
             className="flex-1 border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-            onKeyDown={e => e.key === 'Enter' && addMilestone()}
+            onKeyDown={e => e.key === 'Enter' && addGoal()}
           />
           <button
-            onClick={addMilestone}
+            onClick={addGoal}
             className="px-3 py-2 bg-stone-800 text-white rounded text-sm flex items-center gap-1"
           >
             <Plus size={16} /> Add
@@ -181,8 +181,8 @@ export default function SubjectPage({ subject }) {
           <ClipboardList size={14} /> {showImport ? 'Hide import' : 'Paste a list instead'}
         </button>
         {[
-          { accept: 'image/*', Icon: ImageIcon, label: isStudy ? 'Upload a photo of the specification' : 'Upload a photo of the topics' },
-          { accept: 'application/pdf', Icon: FileText, label: isStudy ? 'Upload a PDF of the specification' : 'Upload a PDF of the topics' },
+          { accept: 'image/*', Icon: ImageIcon, label: isStudy ? 'Upload a photo of the specification' : 'Upload a photo of your goals' },
+          { accept: 'application/pdf', Icon: FileText, label: isStudy ? 'Upload a PDF of the specification' : 'Upload a PDF of your goals' },
         ].map(({ accept, Icon, label }) => (
           <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer">
             {fileLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
@@ -209,7 +209,7 @@ export default function SubjectPage({ subject }) {
           <p className="text-xs text-stone-500 mb-2">
             {isStudy
               ? 'Paste your topic list, one per line. Indent a line with a couple of spaces to make it a subtopic of the line above — bullets, numbering, and checkboxes are stripped automatically.'
-              : "Paste a list of milestones or tasks, one per line — bullets, numbering, or checkboxes are fine, they'll be stripped automatically."}
+              : "Paste a list of goals, one per line — bullets, numbering, or checkboxes are fine, they'll be stripped automatically."}
           </p>
           {isStudy && (
             <div className="flex items-center gap-1.5 mb-2 flex-wrap">
@@ -234,14 +234,14 @@ export default function SubjectPage({ subject }) {
             rows={7}
             placeholder={isStudy
               ? 'e.g.\nCell structure\n  Prokaryotic vs eukaryotic cells\n  Organelles\nEnzyme action'
-              : 'e.g.\n1. Cell structure\n2. Enzyme action\n3. Photosynthesis'}
+              : 'e.g.\n1. Do 10 pullups\n2. Run 5km\n3. Read 12 books'}
             className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center justify-between mt-2">
             <span className="text-xs text-stone-400 font-mono">
               {isStudy
                 ? `${parseTopicsHierarchical(importText).length} main topic${parseTopicsHierarchical(importText).length !== 1 ? 's' : ''} detected`
-                : `${parseTopicsFromText(importText).length} milestone${parseTopicsFromText(importText).length !== 1 ? 's' : ''} detected`}
+                : `${parseTopicsFromText(importText).length} goal${parseTopicsFromText(importText).length !== 1 ? 's' : ''} detected`}
             </span>
             <div className="flex gap-2">
               <button
@@ -261,8 +261,8 @@ export default function SubjectPage({ subject }) {
       {subject.topics.length === 0 && (
         <div className="text-center py-12 text-stone-400 font-serif text-sm">
           {editing
-            ? (isStudy ? 'No topics yet. Add the first one above.' : 'No milestones yet. Add the first one above.')
-            : `Nothing here yet — press Edit to add ${isStudy ? 'topics' : 'milestones'}.`}
+            ? (isStudy ? 'No topics yet. Add the first one above.' : 'No goals yet. Add the first one above.')
+            : `Nothing here yet — press Edit to add ${isStudy ? 'topics' : 'goals'}.`}
         </div>
       )}
 
@@ -300,7 +300,7 @@ export default function SubjectPage({ subject }) {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {subject.topics.map(t => <MilestoneRow key={t.id} subject={subject} topic={t} />)}
+          {subject.topics.map(t => <GoalRow key={t.id} subject={subject} topic={t} />)}
         </div>
       )}
     </div>
