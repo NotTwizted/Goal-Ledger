@@ -80,7 +80,7 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="45/60 or 75"
+          placeholder="45/60 or 75%"
           title="Enter marks out of a total, or a plain percentage"
           className="w-32 border border-stone-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
