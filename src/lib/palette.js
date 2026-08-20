@@ -1,31 +1,31 @@
 // Each subject owns a hue, and everything belonging to it — its card, its
 // progress bars, its papers, its topic cards — is drawn in that hue.
 //
-// The eight slots are the reference categorical order, taken as published
-// rather than re-mixed by eye. They pass the lightness band, chroma floor,
-// colour-vision separation (worst adjacent ΔE 9.1 protan) and normal-vision
-// separation (19.6). Three of them fall below 3:1 against the page, which is
-// allowed only where a visible label carries the meaning instead — every
-// subject is captioned with its name everywhere it appears, so hue is never
-// doing the identifying on its own.
+// Plain colours only — a blue, a green, a deep red and a grey. Purple,
+// violet, magenta and yellow-green are excluded outright: they are what made
+// earlier sets look garish, however well they measured.
 const SUBJECT_ACCENTS = [
   '#0071a1', // petrol blue
-  '#864a81', // plum
-  '#6f8c00', // moss
-  '#006a3b', // pine
-  '#8071d7', // soft violet
+  '#2f7d32', // green
+  '#8d2350', // crimson
+  '#57534e', // warm grey
 ];
 
 // The header's two buttons keep the indigo and amber they have always had,
-// and the subject hues above are chosen around them: each sits at least 16
-// in OKLab from both, against the 12.1 of the orange that used to collide
-// with the Goals button, and at least 15 from every other subject.
+// and the subject hues are chosen around them — each at least 16 in OKLab
+// from both, against the 12.1 of the orange that used to collide with the
+// Goals button, and at least 14 from every other subject.
 //
-// Restraint is the binding constraint here, not the count. Muted colours sit
-// closer together by definition, so every hue kept is one fewer that can be
-// told apart: five is what this depth of tone supports. The earlier set had
-// three hues at lightness 0.65 which read as bright beside the rest — those
-// are gone, and nothing here goes above 0.61.
+// Four is what ordinary colour allows here, and the arithmetic is
+// unforgiving: with indigo and amber reserved for the header, the families
+// left are blue, green, red and neutral. Teal was tried and collides with
+// blue, green and grey at once; a brighter red lands 7 from the amber
+// button. Adding a fifth means reaching for purple or acid green, which is
+// exactly what was asked against.
+const CATEGORY_ACCENTS = {
+  study: '#3730a3',
+  general: '#b45309',
+};
 const CATEGORY_ACCENTS = {
   study: '#3730a3',
   general: '#b45309',
