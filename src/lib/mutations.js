@@ -86,19 +86,19 @@ const withScores = (unit, scores) => {
   });
 };
 
-const addScore = (unit, mark, label) => {
+const addScore = (unit, mark, label, sourceId) => {
   if (!mark) return unit;
-  return withScores(unit, [...unitScores(unit), { id: uid(), ...mark, label }]);
+  return withScores(unit, [...unitScores(unit), { id: uid(), ...mark, label, ...(sourceId ? { sourceId } : {}) }]);
 };
 
 // Folds marks from an uploaded paper into a unit's running totals and
 // recalculates its score percentage from them.
 // One upload contributes one mark per unit, however many questions on it
 // touched that unit — so a paper counts once in the average, like a test does.
-const withPaperMarks = (unit, scored, available, label) => {
+const withPaperMarks = (unit, scored, available, label, sourceId) => {
   if (!(available > 0)) return unit;
   const percent = Math.max(0, Math.min(100, Math.round((scored / available) * 100)));
-  return addScore(unit, { percent, scored, total: available }, label);
+  return addScore(unit, { percent, scored, total: available }, label, sourceId);
 };
 
 // Papers uploaded before a mark ticked the circle left their subtopics white,
@@ -387,11 +387,11 @@ const subtopicOf = (q, topic) => {
 // it. The second is what makes a topic's mastery move with the paper — and it
 // catches questions labelled only with the topic, which used to score nothing
 // at all on a topic that had subtopics.
-function applyPaperToTopic(topic, questions, label) {
+function applyPaperToTopic(topic, questions, label, sourceId) {
   const hasSubtopics = (topic.subtopics || []).length > 0;
 
   const topicMarks = tallyQuestions(questions, q => (questionHitsTopic(q, topic) ? topic.id : null)).get(topic.id);
-  let next = topicMarks ? withPaperMarks(topic, topicMarks.scored, topicMarks.available, label) : topic;
+  let next = topicMarks ? withPaperMarks(topic, topicMarks.scored, topicMarks.available, label, sourceId) : topic;
 
   if (!hasSubtopics) return next;
 
@@ -402,7 +402,7 @@ function applyPaperToTopic(topic, questions, label) {
     ...next,
     subtopics: next.subtopics.map(st => {
       const marks = perSubtopic.get(st.id);
-      return marks ? withPaperMarks(st, marks.scored, marks.available, label) : st;
+      return marks ? withPaperMarks(st, marks.scored, marks.available, label, sourceId) : st;
     }),
   };
 }
@@ -412,7 +412,7 @@ export function addPastPaperRecord(subjects, subjectId, paper, record) {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
     const questions = withOwners(questionsOf(record), s.topics);
     const topics = s.topics.map(t =>
-      ((t.paper || 'Paper 1') === paper ? applyPaperToTopic(t, questions, label) : t));
+      ((t.paper || 'Paper 1') === paper ? applyPaperToTopic(t, questions, label, record.id) : t));
     return { ...s, topics, pastPapers: [...(s.pastPapers || []), record] };
   });
 }
@@ -432,9 +432,41 @@ const mistakesFrom = (questions) => questions
 // when it was added. Filling the marks in is the moment it does — and the flag
 // it clears is what stops the same paper counting twice.
 export function recordPaperMarks(subjects, subjectId, pastPaperId, scores) {
+  return writePaperMarks(subjects, subjectId, pastPaperId, scores, false);
+}
+
+// Correcting a mark the reader got wrong. It reads handwriting, and a 2 with a
+// line through it is a 0 as often as it is a 2, so a paper's marks have to be
+// answerable to the person who sat it.
+//
+// What makes this different from filling in blanks is that the paper has
+// already left its mark on every topic it touched. Applying the correction on
+// top would count it twice, so the marks this paper put there are taken back
+// out first — by the paper's own id, or by its label for papers recorded
+// before marks remembered where they came from.
+export function revisePaperMarks(subjects, subjectId, pastPaperId, scores) {
+  return writePaperMarks(subjects, subjectId, pastPaperId, scores, true);
+}
+
+const withoutMarksFrom = (unit, pastPaperId, label) => {
+  const scores = unitScores(unit);
+  const kept = scores.filter(score =>
+    (score.sourceId ? score.sourceId !== pastPaperId : score.label !== label));
+  return kept.length === scores.length ? unit : withScores(unit, kept);
+};
+
+const stripPaper = (topic, pastPaperId, label) => {
+  const bare = withoutMarksFrom(topic, pastPaperId, label);
+  const subtopics = (topic.subtopics || []).map(st => withoutMarksFrom(st, pastPaperId, label));
+  const changed = subtopics.some((st, i) => st !== topic.subtopics[i]);
+  return changed ? { ...bare, subtopics } : bare;
+};
+
+function writePaperMarks(subjects, subjectId, pastPaperId, scores, revising) {
   return mapSubject(subjects, subjectId, s => {
     const record = (s.pastPapers || []).find(pp => pp.id === pastPaperId);
-    if (!record || !record.needsMarks) return s;
+    if (!record) return s;
+    if (!revising && !record.needsMarks) return s;
 
     const questions = (record.questions || []).map((q, i) => {
       const entered = scores[i];
@@ -445,13 +477,15 @@ export function recordPaperMarks(subjects, subjectId, pastPaperId, scores) {
 
     const filled = { ...record, questions, needsMarks: false, mistakes: mistakesFrom(questions) };
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
-
     const owned = withOwners(questions, s.topics);
 
     return {
       ...s,
-      topics: s.topics.map(t =>
-        ((t.paper || 'Paper 1') === record.paper ? applyPaperToTopic(t, owned, label) : t)),
+      topics: s.topics.map(t => {
+        if ((t.paper || 'Paper 1') !== record.paper) return t;
+        const base = revising ? stripPaper(t, pastPaperId, label) : t;
+        return applyPaperToTopic(base, owned, label, pastPaperId);
+      }),
       pastPapers: (s.pastPapers || []).map(pp => (pp.id === pastPaperId ? filled : pp)),
     };
   });

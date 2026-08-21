@@ -7,12 +7,16 @@ import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 
 export default function PastPaperPage({ subject, pastPaper }) {
-  const { subjects, updateSubjects } = useLedger();
-  // A paper read straight from the PDF arrives with every question and mark
-  // allocation on it and one gap: what was scored. Filling that in here is the
-  // only typing the app ever asks for, and only when no reader was available.
+  const { subjects, updateSubjects, editing } = useLedger();
+  // Two reasons to be typing marks here. A paper read straight from the PDF has
+  // every question and mark allocation on it and one gap — what was scored.
+  // And a paper the reader did mark can still be wrong: it is reading
+  // handwriting, and a crossed-out 2 is a 0 as often as it is a 2. Under Edit,
+  // every mark is answerable to the person who sat the paper.
   const [marks, setMarks] = useState({});
   const needsMarks = Boolean(pastPaper.needsMarks);
+  const correcting = !needsMarks && editing;
+  const entering = needsMarks || correcting;
   const mistakes = pastPaper.mistakes || [];
   // Papers recorded before questions were kept in full still have their
   // mistakes, so the report falls back to those.
@@ -27,12 +31,26 @@ export default function PastPaperPage({ subject, pastPaper }) {
     }));
   const { summary, areas, lost, score, source } = paperFeedback(pastPaper);
 
-  const enteredTotal = questions.reduce((sum, q, i) => sum + (Number(marks[i]) || 0), 0);
+  // While correcting, a box left alone keeps the mark already recorded.
+  const markAt = (q, i) => {
+    if (marks[i] !== undefined) return marks[i];
+    if (!correcting) return '';
+    const stored = recordedScore(q);
+    return stored === null ? '' : String(stored);
+  };
+
+  const enteredTotal = questions.reduce((sum, q, i) => sum + (Number(markAt(q, i)) || 0), 0);
   const availableTotal = questions.reduce((sum, q) => sum + (Number(q.marksAvailable) || 0), 0);
-  const anyEntered = questions.some((q, i) => marks[i] !== undefined && marks[i] !== '');
-  const saveMarks = () =>
-    updateSubjects(mutate.recordPaperMarks(subjects, subject.id, pastPaper.id,
-      questions.map((q, i) => (marks[i] === undefined ? '' : marks[i]))));
+  const anyEntered = questions.some((q, i) => markAt(q, i) !== '');
+  const touched = Object.keys(marks).length > 0;
+
+  const saveMarks = () => {
+    const entered = questions.map((q, i) => markAt(q, i));
+    updateSubjects(correcting
+      ? mutate.revisePaperMarks(subjects, subject.id, pastPaper.id, entered)
+      : mutate.recordPaperMarks(subjects, subject.id, pastPaper.id, entered));
+    setMarks({});
+  };
   const code = subject?.category === 'study'
     ? getPaperCode(subject.level, subject.name, subject.board)
     : null;
@@ -64,6 +82,45 @@ export default function PastPaperPage({ subject, pastPaper }) {
           {pastPaper.fileName} · uploaded {formatDateTime(pastPaper.uploadedAt)}
         </p>
       </div>
+
+      {correcting && (
+        <div className="mb-5 p-4 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#b45309' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <PencilLine size={15} className="shrink-0 text-amber-700" />
+            <p className="text-sm font-medium text-stone-900">Correct a mark</p>
+          </div>
+          <p className="text-xs text-stone-600 leading-relaxed">
+            The reader is reading handwriting and does get marks wrong. Change any of them below and
+            save; this paper's contribution to every topic it touched is worked out again from scratch,
+            so nothing is counted twice.
+          </p>
+          <div className="flex items-center gap-3 mt-3">
+            <span className="font-mono text-sm text-stone-700">
+              {enteredTotal}/{availableTotal}
+              {availableTotal > 0 && (
+                <span className="text-stone-400"> · {Math.round((enteredTotal / availableTotal) * 100)}%</span>
+              )}
+            </span>
+            <span className="flex-1" />
+            {touched && (
+              <button
+                onClick={() => setMarks({})}
+                className="px-3 py-1.5 text-sm text-stone-600 border border-stone-300 rounded"
+              >
+                Undo changes
+              </button>
+            )}
+            <button
+              data-tappable
+              onClick={saveMarks}
+              disabled={!touched}
+              className="px-3 py-1.5 text-sm text-white bg-stone-800 rounded font-medium disabled:bg-stone-300"
+            >
+              Save marks
+            </button>
+          </div>
+        </div>
+      )}
 
       {needsMarks ? (
         <div className="mb-5 p-4 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#b45309' }}>
@@ -169,8 +226,9 @@ export default function PastPaperPage({ subject, pastPaper }) {
           {questions.map((q, i) => {
             const available = Number(q.marksAvailable) || 0;
             const stored = recordedScore(q);
-            const scored = needsMarks ? (Number(marks[i]) || 0) : (stored === null ? 0 : stored);
-            const known = needsMarks ? (marks[i] !== undefined && marks[i] !== '') : stored !== null;
+            const entry = markAt(q, i);
+            const scored = entering ? (Number(entry) || 0) : (stored === null ? 0 : stored);
+            const known = entering ? entry !== '' : stored !== null;
             const lost = known ? Math.max(0, available - scored) : 0;
             const percent = available > 0 ? Math.round((scored / available) * 100) : 0;
             return (
@@ -181,13 +239,13 @@ export default function PastPaperPage({ subject, pastPaper }) {
                 }`}
               >
                 <span className="w-8 shrink-0 font-mono text-xs text-stone-500">Q{q.question || i + 1}</span>
-                {needsMarks ? (
+                {entering ? (
                   <span className="shrink-0 flex items-center gap-1 w-14">
                     <input
                       type="number"
                       min="0"
                       max={available}
-                      value={marks[i] === undefined ? '' : marks[i]}
+                      value={entry}
                       onChange={e => setMarks(m => ({ ...m, [i]: e.target.value }))}
                       placeholder="—"
                       className="w-9 border border-stone-300 rounded px-1 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
