@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyRound } from 'lucide-react';
+import { CheckCircle2, KeyRound, Loader2, XCircle } from 'lucide-react';
 import { PROVIDERS, getApiKey, looksLikeApiKey, providerOf } from '../lib/apikey';
 import { useLedger } from '../lib/ledger';
 
@@ -11,6 +11,8 @@ export default function ApiKeyDialog({ onClose }) {
   const { saveReaderKey } = useLedger();
   const [value, setValue] = useState(getApiKey());
   const [touched, setTouched] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState(null);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -21,6 +23,36 @@ export default function ApiKeyDialog({ onClose }) {
   const trimmed = value.trim();
   const provider = providerOf(trimmed);
   const valid = trimmed === '' || looksLikeApiKey(trimmed);
+
+  // Whether a key is the right shape and whether the provider will accept it
+  // are different questions, and only the second one matters. This asks it, for
+  // the price of about twenty tokens, rather than leaving it to be discovered
+  // on an upload that quietly falls back to reading the PDF instead.
+  const test = async () => {
+    setTesting(true);
+    setResult(null);
+    try {
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-user-api-key': trimmed },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 16,
+          messages: [{ role: 'user', content: [{ type: 'text', text: 'Reply with the word OK.' }] }],
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setResult({ ok: false, message: data?.error?.message || `The provider refused it (${response.status}).` });
+      } else {
+        setResult({ ok: true, message: 'Working — the provider accepted it and answered.' });
+      }
+    } catch (e) {
+      setResult({ ok: false, message: `Could not reach the reader: ${e.message}` });
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const save = () => {
     saveReaderKey(trimmed);
@@ -70,7 +102,7 @@ export default function ApiKeyDialog({ onClose }) {
           type="password"
           autoFocus
           value={value}
-          onChange={e => { setValue(e.target.value); setTouched(true); }}
+          onChange={e => { setValue(e.target.value); setTouched(true); setResult(null); }}
           onKeyDown={e => e.key === 'Enter' && valid && save()}
           placeholder="AQ.… or AIza… or sk-ant-…"
           className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
@@ -100,7 +132,26 @@ export default function ApiKeyDialog({ onClose }) {
           </p>
         )}
 
-        <div className="flex justify-end gap-2 mt-4">
+        {result && (
+          <p className={`flex items-start gap-1.5 text-xs mt-3 leading-relaxed ${result.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+            {result.ok
+              ? <CheckCircle2 size={13} className="shrink-0 mt-0.5" />
+              : <XCircle size={13} className="shrink-0 mt-0.5" />}
+            <span>{result.message}</span>
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 mt-4">
+          <button
+            data-tappable
+            onClick={test}
+            disabled={!trimmed || !valid || testing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-stone-700 border border-stone-300 rounded disabled:text-stone-300 disabled:border-stone-200"
+          >
+            {testing && <Loader2 size={13} className="animate-spin" />}
+            {testing ? 'Testing…' : 'Test it'}
+          </button>
+          <span className="flex-1" />
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-stone-600 border border-stone-300 rounded">
             Cancel
           </button>
