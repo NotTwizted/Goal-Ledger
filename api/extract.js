@@ -14,6 +14,9 @@ export const config = { maxDuration: 60 };
 // overrides this without a deploy when that happens again.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
+// What a thinking model may spend on reasoning before it starts answering.
+const THINKING_HEADROOM = 8000;
+
 const GOOGLE_PREFIXES = ['AIza', 'AQ.'];
 const providerOf = (key) =>
   (GOOGLE_PREFIXES.some(prefix => String(key || '').startsWith(prefix)) ? 'gemini' : 'anthropic');
@@ -33,12 +36,18 @@ function toGeminiRequest(body) {
     })
     .filter(Boolean);
 
+  // Google's newer models think before they answer, and the thinking is spent
+  // out of the same budget as the reply. A request for 16 tokens came back
+  // empty with MAX_TOKENS — all of it had gone on reasoning. So the budget sent
+  // is the answer the app asked for plus room to think first.
+  const asked = body?.max_tokens || 4000;
+
   return {
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      maxOutputTokens: body?.max_tokens || 4000,
-      // The app asks for JSON and parses it; leaving room for reasoning tokens
-      // is what stops a long paper coming back truncated.
+      maxOutputTokens: asked + THINKING_HEADROOM,
+      // The app asks for JSON and parses it, so there is nothing to be gained
+      // from variety.
       temperature: 0,
     },
   };
@@ -72,7 +81,13 @@ async function callGemini(apiKey, body) {
     const reason = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason;
     return {
       status: 502,
-      payload: { error: { message: `The model returned nothing${reason ? ` (${reason})` : ''}. Try a clearer scan.` } },
+      payload: {
+        error: {
+          message: reason === 'MAX_TOKENS'
+            ? 'The model ran out of room before it answered — the file is too long to read in one go. Try splitting it.'
+            : `The model returned nothing${reason ? ` (${reason})` : ''}. Try a clearer scan.`,
+        },
+      },
     };
   }
   return { status: 200, payload: converted };

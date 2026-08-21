@@ -37,7 +37,7 @@ export default function ApiKeyDialog({ onClose }) {
         headers: { 'content-type': 'application/json', 'x-user-api-key': trimmed },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 16,
+          max_tokens: 256,
           messages: [{ role: 'user', content: [{ type: 'text', text: 'Reply with the word OK.' }] }],
         }),
       });
