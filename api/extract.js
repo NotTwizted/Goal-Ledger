@@ -9,7 +9,10 @@
 
 export const config = { maxDuration: 60 };
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+// Google retires models for new keys without retiring them for old ones, so a
+// name that works today can refuse a key issued tomorrow. GEMINI_MODEL
+// overrides this without a deploy when that happens again.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 const GOOGLE_PREFIXES = ['AIza', 'AQ.'];
 const providerOf = (key) =>
