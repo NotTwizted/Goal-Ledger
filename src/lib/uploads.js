@@ -81,7 +81,10 @@ export async function extractPastPaper(file, paper, topics, onProgress) {
     return await readPaperWithModel(file, paper, topicNames, onProgress);
   } catch (modelError) {
     try {
-      return await paperFromScan(file, paper, topics || []);
+      // Why it came this way matters: no key and "the model could not read it"
+      // need different things done about them, and without this the paper just
+      // appears with empty boxes and no account of itself.
+      return { ...(await paperFromScan(file, paper, topics || [])), fallbackReason: modelError.message };
     } catch (scanError) {
       // Both failed, and each knows something the other does not.
       throw new Error(`${modelError.message} Reading the PDF here instead did not work either: ${scanError.message}`);

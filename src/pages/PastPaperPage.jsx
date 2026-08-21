@@ -76,6 +76,11 @@ export default function PastPaperPage({ subject, pastPaper }) {
             worth and which topic it tests. Your own marks are the one thing printed nowhere in it. Put
             them in below and this paper counts toward every topic it touched, with feedback to match.
           </p>
+          {pastPaper.fallbackReason && (
+            <p className="text-[11px] text-stone-500 mt-2 pt-2 border-t border-stone-100">
+              Read from the PDF because the reader did not: {pastPaper.fallbackReason}
+            </p>
+          )}
           <div className="flex items-center gap-3 mt-3">
             <span className="font-mono text-sm text-stone-700">
               {enteredTotal}/{availableTotal}
