@@ -19,7 +19,7 @@ check('the marker\'s total is asked for separately from any sum',
 check('a mismatch triggers a second reading',
   /scoredTotal\(questions\) !== target/.test(src));
 check('which thinks harder than the first',
-  /readParts\(parts, recheck, 8000, onProgress, 'high'\)/.test(src));
+  /readParts\(focused \? \[focused\] : parts, recheck, 8000, onProgress, 'high'\)/.test(src));
 check('a revision is only taken if it reconciles',
   /scoredTotal\(reread\) === target/.test(src));
 check('an unreconciled paper says so',
@@ -58,3 +58,24 @@ check('and that null is a last resort, not an expression of doubt',
   /Only if there is genuinely no mark to be found/.test(src));
 check('the paper names the questions it could not read',
   /No mark could be read for/.test(page));
+
+// A mark that could not be found in a whole paper is looked for again on the
+// two or three pages it must be on.
+check('the pages a missing mark must be on are cut out',
+  /const focused = unread\.length && !mismatched\(\) && wantedPages\.length/.test(src));
+check('taken from the total line of each question, and its neighbours',
+  /return page \? \[page - 1, page, page \+ 1\] : \[\];/.test(src));
+check('but the whole paper is kept when a total must be settled',
+  /unread\.length && !mismatched\(\)/.test(src));
+check('the second look is told which marks are already settled',
+  /These marks were read successfully and are not in question/.test(src));
+check('and made to transcribe before it assigns',
+  /list every handwritten number you can see anywhere on these pages/.test(src));
+
+const prep = readFileSync(new URL('../src/lib/fileprep.js', import.meta.url), 'utf8');
+check('cutting pages out refuses anything but a PDF',
+  /if \(!isPdf\(file\) \|\| !pageNumbers\.length\) return null;/.test(prep));
+check('and refuses a result too large to send',
+  /if \(bytes\.length > MAX_PART_BYTES\) return null;/.test(prep));
+check('page numbers out of range are dropped, not requested',
+  /\.filter\(n => n >= 1 && n <= total\)/.test(prep));

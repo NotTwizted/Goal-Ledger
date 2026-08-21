@@ -126,6 +126,40 @@ export async function prepareParts(file) {
   return shrinkImage(file);
 }
 
+// Just the pages asked for, as one small PDF.
+//
+// A mark that could not be found in a whole paper is worth looking for again
+// on the two or three pages it must be on. The question's own total line says
+// which page that is, so the second attempt is a short document with the
+// answer somewhere in it rather than thirty-two pages to search.
+export async function pagesOf(file, pageNumbers) {
+  if (!isPdf(file) || !pageNumbers.length) return null;
+
+  try {
+    const source = await PDFDocument.load(await readAsArrayBuffer(file), { ignoreEncryption: true });
+    const total = source.getPageCount();
+    const wanted = [...new Set(pageNumbers)]
+      .filter(n => n >= 1 && n <= total)
+      .sort((a, b) => a - b);
+    if (!wanted.length) return null;
+
+    const out = await PDFDocument.create();
+    const pages = await out.copyPages(source, wanted.map(n => n - 1));
+    pages.forEach(page => out.addPage(page));
+    const bytes = await out.save();
+    if (bytes.length > MAX_PART_BYTES) return null;
+
+    return {
+      mediaType: 'application/pdf',
+      data: bytesToBase64(bytes),
+      pages: [wanted[0], wanted[wanted.length - 1]],
+      only: wanted,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 export function contentBlock(part) {
   return part.mediaType === 'application/pdf'
     ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: part.data } }

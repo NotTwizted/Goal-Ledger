@@ -1,5 +1,5 @@
 import { callClaudeText, callClaudeWithFile, recordedScore, uid } from './helpers';
-import { contentBlock, isPdf, prepareParts } from './fileprep';
+import { contentBlock, isPdf, pagesOf, prepareParts } from './fileprep';
 import { scanPaper } from './pdfscan';
 
 // A file too large to send in one request is split into parts that fit, each
@@ -195,6 +195,9 @@ async function paperFacts(file, topics) {
       year: scanned.year || null,
       allocations,
       total: scanned.questions.reduce((sum, q) => sum + q.marksAvailable, 0),
+      // Where each question's total line is printed, which is where its mark
+      // is written.
+      pages: Object.fromEntries(scanned.questions.filter(q => q.page).map(q => [String(q.question), q.page])),
     };
   } catch (e) {
     // Not every paper prints its allocations, and a photograph prints nothing.
@@ -246,14 +249,35 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
       mismatched() ? `the marker wrote a total of ${target} but the marks read came to ${scoredTotal(questions)}, so at least one is wrong` : '',
     ].filter(Boolean).join(', and ');
 
+    // The pages the missing marks must be on — the question's total line and
+    // its neighbours — cut out into one short document. Searching three pages
+    // beats searching thirty-two. Only when the marks are the whole problem:
+    // a total that will not add up needs the whole paper to settle.
+    const wantedPages = unread.flatMap(number => {
+      const page = facts?.pages?.[number];
+      return page ? [page - 1, page, page + 1] : [];
+    }).filter(page => page >= 1);
+
+    const focused = unread.length && !mismatched() && wantedPages.length
+      ? await pagesOf(file, wantedPages)
+      : null;
+
+    const known = questions
+      .filter(q => recordedScore(q) !== null)
+      .map(q => `Q${q.question}: ${recordedScore(q)} of ${q.marksAvailable}`);
+
     const recheck = (suffix) =>
-      `This file is a corrected/marked past exam paper.${suffix} It has been read once already and needs looking at again: ${why}. Go through every question and read each handwritten mark carefully${target !== null ? `, so that they add to ${target}` : ''}. Give the question number, the topic, the subtopic, the marks scored and the marks available for each.`
+      `This is ${focused ? 'part of' : ''} a corrected/marked past exam paper.${focused ? '' : suffix} It has been read once already and needs looking at again: ${why}.`
+      + (known.length ? `\n\nThese marks were read successfully and are not in question:\n\n${known.join('\n')}` : '')
+      + `\n\nWork in two steps. First, list every handwritten number you can see anywhere on these pages, with where each one is — "12 in the right margin", "6 beside the total line for question 5". Include every one, even those you think are part of the student's working. Then decide which of them is the marker's mark for each question you were asked about, and report that.`
       + (outline ? `\n\nUse these topic and subtopic names EXACTLY as written:\n\n${outline}` : '')
       + (facts ? `\n\nThe printed mark allocations are:\n\n${facts.allocations.join('\n')}` : '')
-      + `\n\n${MARKING_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "..."}]}`;
+      + (target !== null && !focused ? `\n\nThe marks you report must add to ${target}, which is what the marker wrote.` : '')
+      + `\n\n${MARKING_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"seen": ["12 in the right margin of the page for question 5"], "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "..."}]}`;
 
     try {
-      const second = await readParts(parts, recheck, 8000, onProgress, 'high').then(r => r.results);
+      const second = await readParts(focused ? [focused] : parts, recheck, 8000, onProgress, 'high')
+        .then(r => r.results);
       const reread = questionsOfResults(second);
       const byNumber = new Map(reread.map(q => [String(q.question), q]));
 
