@@ -49,8 +49,21 @@ function toGeminiRequest(body) {
       // The app asks for JSON and parses it, so there is nothing to be gained
       // from variety.
       temperature: 0,
+      // Reading marks off a page is not a problem that rewards long reasoning,
+      // and the reasoning is most of the wait. Dropped from the request if the
+      // model does not know the field.
+      thinkingConfig: { thinkingLevel: 'low' },
     },
   };
+}
+
+// Not every model takes thinkingConfig, and one that does not says so with a
+// 400 rather than ignoring it. Rather than keep a list of which models accept
+// what, the request is simply sent again without it.
+function withoutThinkingConfig(request) {
+  const { thinkingConfig, ...generationConfig } = request.generationConfig || {};
+  if (!thinkingConfig) return null;
+  return { ...request, generationConfig };
 }
 
 function fromGeminiResponse(data) {
@@ -62,13 +75,21 @@ function fromGeminiResponse(data) {
   };
 }
 
-async function callGemini(apiKey, body) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-  const upstream = await fetch(url, {
+const postGemini = (apiKey, request) =>
+  fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify(toGeminiRequest(body)),
+    body: JSON.stringify(request),
   });
+
+async function callGemini(apiKey, body) {
+  const request = toGeminiRequest(body);
+  let upstream = await postGemini(apiKey, request);
+
+  if (upstream.status === 400) {
+    const plain = withoutThinkingConfig(request);
+    if (plain) upstream = await postGemini(apiKey, plain);
+  }
 
   const data = await upstream.json();
   if (!upstream.ok) {

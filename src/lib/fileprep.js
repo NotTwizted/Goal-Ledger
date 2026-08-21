@@ -36,11 +36,25 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
-// Photographs shrink to fit without losing anything a marker's annotations
-// need — the long edge is capped and the quality dropped a step at a time.
+// Every photograph is scaled down, not only the ones too large to send. A
+// twelve megapixel picture of an A4 page is thousands of image tokens for the
+// model to look at and tells it nothing a 1600px one does not — it was the
+// difference between a page taking a minute and taking seconds.
 async function shrinkImage(file) {
-  const bitmap = await createImageBitmap(file);
-  for (const [maxEdge, quality] of [[2200, 0.85], [1700, 0.8], [1300, 0.72], [1000, 0.65]]) {
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (e) {
+    // A format the browser will not decode (HEIC, most often). Send it as it
+    // is and let the model decide, so long as it fits.
+    if (file.size <= MAX_PART_BYTES) {
+      const buffer = await readAsArrayBuffer(file);
+      return [{ mediaType: file.type || 'image/jpeg', data: bytesToBase64(new Uint8Array(buffer)) }];
+    }
+    throw new Error(`${file.name} is not an image this browser can open, and is too large to send as it is.`);
+  }
+
+  for (const [maxEdge, quality] of [[1600, 0.82], [1300, 0.75], [1000, 0.65]]) {
     const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(bitmap.width * scale);
@@ -109,11 +123,6 @@ export async function prepareParts(file) {
     return splitPdf(file);
   }
 
-  if (file.size <= MAX_PART_BYTES) {
-    const buffer = await readAsArrayBuffer(file);
-    const mediaType = file.type || 'image/jpeg';
-    return [{ mediaType, data: bytesToBase64(new Uint8Array(buffer)) }];
-  }
   return shrinkImage(file);
 }
 

@@ -1,5 +1,5 @@
 import { callClaudeText, callClaudeWithFile, uid } from './helpers';
-import { contentBlock, prepareParts } from './fileprep';
+import { contentBlock, isPdf, prepareParts } from './fileprep';
 import { scanPaper } from './pdfscan';
 
 // A file too large to send in one request is split into parts that fit, each
@@ -12,17 +12,30 @@ const partLabel = (part, index, total) => {
   return ` This is ${where} of a longer paper, so number the questions as they are printed and do not be troubled that it starts or ends part way through.`;
 };
 
+// Free tiers rate limit by requests per minute, so the parts go together but
+// not all at once.
+const AT_ONCE = 3;
+
 async function readParts(file, buildPrompt, maxTokens, onProgress) {
   const parts = await prepareParts(file);
-  const results = [];
+  const results = new Array(parts.length);
+  let done = 0;
 
-  for (let i = 0; i < parts.length; i++) {
-    if (onProgress) onProgress(i, parts.length);
-    results.push(await callClaudeWithFile(
-      contentBlock(parts[i]),
-      buildPrompt(partLabel(parts[i], i, parts.length)),
-      maxTokens,
-    ));
+  // Read together rather than in turn: three parts done one after another take
+  // three times as long for no reason, since none of them needs the others.
+  for (let from = 0; from < parts.length; from += AT_ONCE) {
+    const batch = parts.slice(from, from + AT_ONCE);
+    if (onProgress) onProgress(done, parts.length);
+
+    await Promise.all(batch.map(async (part, offset) => {
+      results[from + offset] = await callClaudeWithFile(
+        contentBlock(part),
+        buildPrompt(partLabel(part, from + offset, parts.length), parts.length === 1),
+        maxTokens,
+      );
+      done += 1;
+      if (onProgress) onProgress(done, parts.length);
+    }));
   }
 
   return { results, partCount: parts.length };
@@ -80,6 +93,9 @@ export async function extractPastPaper(file, paper, topics, onProgress) {
   try {
     return await readPaperWithModel(file, paper, topicNames, onProgress);
   } catch (modelError) {
+    // A photograph has no text layer to read, so there is nothing to fall back
+    // to and the reader's own error is the useful thing to say.
+    if (!isPdf(file)) throw modelError;
     try {
       // Why it came this way matters: no key and "the model could not read it"
       // need different things done about them, and without this the paper just
@@ -125,10 +141,13 @@ export function paperRecordFromScan(scanned, paper, fileName) {
 }
 
 async function readPaperWithModel(file, paper, topicNames, onProgress) {
-  const buildPrompt = (suffix) =>
+  // A paper split into parts has its feedback written once at the end, from all
+  // of them together. Asking each part for feedback as well meant writing three
+  // sets of it and throwing away three — most of the wait, for nothing.
+  const buildPrompt = (suffix, single) =>
     `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests`
     + (topicNames.length ? ` (pick the closest match from this list where possible: ${topicNames.join(', ')}; otherwise give your own short topic label)` : '')
-    + `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence.\n\n${FEEDBACK_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "feedback": ${FEEDBACK_SHAPE}}. If the session or year can't be found, use null for that field.`;
+    + `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}. If the session or year can't be found, use null for that field.`;
 
   const { results, partCount } = await readParts(file, buildPrompt, 8000, onProgress);
 
@@ -164,10 +183,10 @@ async function readPaperWithModel(file, paper, topicNames, onProgress) {
 }
 
 export async function extractUnitTest(file, topicName, subtopicNames, onProgress) {
-  const buildPrompt = (suffix) =>
+  const buildPrompt = (suffix, single) =>
     `This file is a corrected/marked unit test on the topic "${topicName || ''}".${suffix} Go through EVERY question on it, not only the ones with marks lost. For each question give the subtopic it tests`
     + (subtopicNames.length ? ` (pick the closest match from this list where possible: ${subtopicNames.join(', ')}; otherwise give your own short subtopic label)` : '')
-    + `, the marks the student scored on it as an integer, the marks available for it as an integer, and where marks were lost a one-sentence description of the mistake. Then list which subtopics need the most focus, ranked by how many marks were lost on them.\n\n${FEEDBACK_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"], "feedback": ${FEEDBACK_SHAPE}}`;
+    + `, the marks the student scored on it as an integer, the marks available for it as an integer, and where marks were lost a one-sentence description of the mistake. Then list which subtopics need the most focus, ranked by how many marks were lost on them.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}`;
 
   const { results, partCount } = await readParts(file, buildPrompt, 6000, onProgress);
 
