@@ -217,31 +217,29 @@ export function isMastered(unit) {
 
 // What a topic may claim about itself.
 //
-// Its own marks say how it went on the questions that came up, and that is a
-// real thing worth showing — but it is not the same as knowing the topic. A
-// paper that asked one question on quadratics and got it right does not make
-// quadratics mastered while three of its five parts have never been opened.
-// So the stamp is held to what the parts underneath support:
-//
-//   every part mastered   the topic's own marks stand, mastered included
-//   some mastered         no higher than solid
-//   none mastered, some   no higher than learning
-//     started
-//   nothing started       no claim at all
+// Not its own paper marks: those say how the questions that happened to come
+// up went, and one question on quadratics going well is not the whole of
+// quadratics. A topic with parts is as mastered as its parts are — two of five
+// is 40%, and only five of five is the topic mastered.
 //
 // A unit with no parts under it — a subtopic, or a topic that never had any —
-// has nothing to be held to and keeps its own mastery.
-export function unitStamp(unit) {
+// has only its own marks to go on and keeps them.
+export function masteredFraction(unit) {
   const parts = unit?.subtopics || [];
-  const own = unit?.mastery || 0;
-  if (!parts.length) return own;
+  if (!parts.length) return null;
+  return Math.round((parts.filter(isMastered).length / parts.length) * 100);
+}
 
-  const mastered = parts.filter(isMastered).length;
-  if (mastered === parts.length) return own;
-
-  const started = parts.filter(p => p.status !== 'not-started' || averageScore(p) !== null).length;
-  if (!started) return 0;
-  return Math.min(own, mastered ? 3 : 2);
+// The same ladder as the marks use, read as how far through a topic is rather
+// than how well a paper went.
+export function unitStamp(unit) {
+  const fraction = masteredFraction(unit);
+  if (fraction === null) return unit?.mastery || 0;
+  if (fraction >= 100) return 4; // Mastered — every part of it
+  if (fraction >= 75) return 3; // Solid
+  if (fraction >= 40) return 2; // Learning
+  if (fraction > 0) return 1; // Shaky
+  return 0; // Nothing under it proven yet
 }
 
 export function averageScore(unit) {

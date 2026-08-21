@@ -5,6 +5,7 @@ import { daysUntil, pastPaperLabel, subjectLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
 import { assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
+import { syncStatusWithMarks } from './lib/mutations';
 import { parseLedger, serialiseLedger } from './lib/ledgerdata';
 import { getApiKey, setApiKey } from './lib/apikey';
 import HeaderMenu from './components/HeaderMenu';
@@ -300,14 +301,16 @@ export default function StudyTracker() {
     persist(subjects, key || '');
   }, [persist, subjects]);
 
-  // Subjects made before colours existed have none, so give each a distinct one
-  // and save it. Once per session, and only when something is actually missing.
-  const accentsBackfilled = useRef(false);
+  // Two things older ledgers are missing: a colour per subject, from before
+  // colours existed, and a status on subtopics a paper had marked but left
+  // looking untouched. Both are put right once per session, and only when
+  // there is something to put right.
+  const backfilled = useRef(false);
   useEffect(() => {
-    if (!loaded || !user || accentsBackfilled.current) return;
-    const next = assignMissingAccents(subjects);
+    if (!loaded || !user || backfilled.current) return;
+    const next = syncStatusWithMarks(assignMissingAccents(subjects));
     if (next === subjects) return;
-    accentsBackfilled.current = true;
+    backfilled.current = true;
     updateSubjects(next);
   }, [loaded, user, subjects, updateSubjects]);
 

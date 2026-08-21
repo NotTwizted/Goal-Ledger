@@ -45,14 +45,33 @@ const toggleCovered = (unit) => {
 // Green follows the average, both ways: crossing the threshold marks a unit
 // mastered and stamps when; falling back below returns it to however far the
 // student had got by hand.
+//
+// And a mark recorded against a unit means it has been sat, so the circle is
+// at least amber. It used to stay white until somebody ticked it, which read
+// as "never touched" on subtopics a paper had just tested.
 const withMastery = (unit) => {
   if (isMastered(unit)) {
     return unit.status === 'done'
       ? unit
       : { ...unit, status: 'done', completedAt: new Date().toISOString() };
   }
-  if (unit.status !== 'done') return unit;
-  return { ...unit, status: unit.coveredAt ? 'in-progress' : 'not-started', completedAt: null };
+
+  const marked = unitScores(unit).length > 0;
+
+  if (unit.status === 'done') {
+    return {
+      ...unit,
+      status: unit.coveredAt || marked ? 'in-progress' : 'not-started',
+      coveredAt: unit.coveredAt || (marked ? new Date().toISOString() : null),
+      completedAt: null,
+    };
+  }
+
+  if (marked && unit.status === 'not-started') {
+    return { ...unit, status: 'in-progress', coveredAt: unit.coveredAt || new Date().toISOString() };
+  }
+
+  return unit;
 };
 
 // scorePercent stays written as the average so progress, sorting and the
@@ -81,6 +100,33 @@ const withPaperMarks = (unit, scored, available, label) => {
   const percent = Math.max(0, Math.min(100, Math.round((scored / available) * 100)));
   return addScore(unit, { percent, scored, total: available }, label);
 };
+
+// Papers uploaded before a mark ticked the circle left their subtopics white,
+// which read as never touched. Nothing about the ledger changes here — the
+// marks were already recorded — the status is simply brought into line with
+// them, once, so old uploads look like new ones.
+export function syncStatusWithMarks(subjects) {
+  // Nothing is rebuilt that did not change, so a ledger already in line comes
+  // back as the same object and the backfill writes nothing.
+  const mapChanged = (list, fn) => {
+    let changed = false;
+    const next = (list || []).map(item => {
+      const fixed = fn(item);
+      if (fixed !== item) changed = true;
+      return fixed;
+    });
+    return changed ? next : list;
+  };
+
+  return mapChanged(subjects, subject => {
+    const topics = mapChanged(subject.topics, topic => {
+      const subtopics = mapChanged(topic.subtopics, withMastery);
+      const base = subtopics === topic.subtopics ? topic : { ...topic, subtopics };
+      return withMastery(base);
+    });
+    return topics === subject.topics ? subject : { ...subject, topics };
+  });
+}
 
 export function addTopic(subjects, subjectId, name, paper) {
   return mapSubject(subjects, subjectId, s => ({

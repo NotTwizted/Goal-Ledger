@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { MASTERY_LEVELS, averageScore, isMastered, parseMarkInput, unitScores, unitStamp } from '../lib/helpers';
+import { MASTERY_LEVELS, averageScore, isMastered, masteredFraction, parseMarkInput, unitScores, unitStamp } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 
 // The compact half: the average, how many marks it came from, and the stamp.
@@ -10,23 +10,27 @@ export function ScoreSummary({ unit, open, onToggle }) {
   const count = unitScores(unit).length;
   const stamp = unitStamp(unit);
   const parts = unit.subtopics || [];
+  const fraction = masteredFraction(unit);
   const mastered = parts.filter(isMastered).length;
-  const held = parts.length > 0 && stamp < (unit.mastery || 0);
 
+  // A topic shows how much of itself is mastered; anything else shows what its
+  // marks averaged.
+  const shown = fraction === null ? average : fraction;
   const marksNote = count ? `${count} mark${count !== 1 ? 's' : ''} recorded` : 'No marks yet';
 
   return (
     <button
       onClick={onToggle}
-      title={held
-        ? `${marksNote}. ${mastered} of ${parts.length} subtopics mastered — the whole topic is only mastered when they all are.`
-        : marksNote}
+      title={fraction === null
+        ? marksNote
+        : `${mastered} of ${parts.length} subtopics mastered — mastered as a whole only when they all are.`
+          + (average === null ? '' : ` Its own marks average ${average}% over ${count} paper${count !== 1 ? 's' : ''}.`)}
       className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded border ${
         open ? 'border-stone-400 bg-stone-100' : 'border-transparent'
       }`}
     >
       <span className="font-mono text-xs text-stone-700 w-9 text-right">
-        {average === null ? '—' : `${average}%`}
+        {shown === null ? '—' : `${shown}%`}
       </span>
       <span className={`px-1 py-0.5 rounded border font-mono tracking-wider text-[8px] ${MASTERY_LEVELS[stamp].color}`}>
         {MASTERY_LEVELS[stamp].stamp}
