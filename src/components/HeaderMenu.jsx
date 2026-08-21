@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, KeyRound, Lock, LogOut, MoreVertical } from 'lucide-react';
-import { hasApiKey, maskApiKey } from '../lib/apikey';
+import { hasApiKey, providerLabel } from '../lib/apikey';
 import ApiKeyDialog from './ApiKeyDialog';
 
 // The settings that aren't navigation live behind the three dots, so the
@@ -86,9 +86,9 @@ export default function HeaderMenu({
             className={`${item} border-t border-stone-200`}
           >
             <KeyRound size={15} className="shrink-0" />
-            <span className="flex-1">API key</span>
+            <span className="flex-1">Reader key</span>
             <span className="text-[10px] font-mono text-stone-400">
-              {hasApiKey() ? maskApiKey() : 'Not set'}
+              {hasApiKey() ? (providerLabel() || 'Set') : 'Not set'}
             </span>
           </button>
 
