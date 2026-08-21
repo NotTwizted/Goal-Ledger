@@ -75,6 +75,21 @@ export default function PastPaperPage({ subject, pastPaper }) {
                       <span>{area.action}</span>
                     </p>
                   )}
+
+                  {/* What costs marks on this topic generally — offered as
+                      such, not as a claim about what happened on this script. */}
+                  {area.pitfall && (
+                    <div className="ml-5 mt-2 p-2.5 bg-stone-50 border border-stone-200 rounded">
+                      <p className="text-[10px] font-mono tracking-wider text-stone-400 mb-1">
+                        WHERE MARKS USUALLY GO ON THIS
+                      </p>
+                      <p className="text-xs text-stone-600 leading-relaxed">{area.pitfall.where}</p>
+                      <p className="text-[10px] font-mono tracking-wider text-stone-400 mt-2 mb-1">
+                        HOW TO NOT LOSE THEM AGAIN
+                      </p>
+                      <p className="text-xs text-stone-800 leading-relaxed">{area.pitfall.avoid}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

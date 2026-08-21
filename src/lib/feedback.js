@@ -1,3 +1,5 @@
+import { pitfallFor } from './pitfalls';
+
 // What a marked paper says about the person who sat it.
 //
 // The extraction writes feedback grounded in the actual answers, and that is
@@ -81,8 +83,18 @@ export function paperFeedback(record) {
   const areas = lostByTopic(record);
   const score = paperScore(record);
 
+  // The pitfalls belong to the topic, not to this paper, so they are useful
+  // whether or not a model read the script.
+  const withPitfall = (area) => ({ ...area, pitfall: pitfallFor(area.topic) });
+
   if (stored && (stored.summary || (stored.areas || []).length)) {
-    return { source: 'read', summary: stored.summary || '', areas: stored.areas || [], lost: areas, score };
+    return {
+      source: 'read',
+      summary: stored.summary || '',
+      areas: (stored.areas || []).map(withPitfall),
+      lost: areas,
+      score,
+    };
   }
 
   const opening = score ? `${score.scored}/${score.available} — ${score.percent}%. ` : '';
@@ -105,7 +117,7 @@ export function paperFeedback(record) {
     summary: areas.length === 1
       ? `${opening}All ${marks(total)} lost went on ${worst.topic}.`
       : `${opening}${marks(total)} lost across ${areas.length} topics, most of it — ${marks(worst.lost)} — on ${worst.topic}.`,
-    areas: areas.slice(0, 5).map(area => ({
+    areas: areas.slice(0, 5).map(area => withPitfall({
       topic: area.topic,
       problem: area.mistakes.length
         ? area.mistakes.slice(0, 3).join('; ')
