@@ -5,6 +5,8 @@ import { daysUntil, pastPaperLabel, subjectLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
 import { assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
+import { parseLedger, serialiseLedger } from './lib/ledgerdata';
+import { getApiKey, setApiKey } from './lib/apikey';
 import HeaderMenu from './components/HeaderMenu';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -42,6 +44,7 @@ export default function StudyTracker() {
   const [saveError, setSaveError] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [readerKey, setReaderKey] = useState(getApiKey);
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
@@ -106,7 +109,23 @@ export default function StudyTracker() {
         if (cancelled) return;
 
         if (data?.subjects) {
-          setSubjects(Array.isArray(data.subjects) ? data.subjects : []);
+          const ledger = parseLedger(data.subjects);
+          setSubjects(ledger.subjects);
+
+          if (ledger.readerKey) {
+            // A key added on another device arrives here.
+            setApiKey(ledger.readerKey);
+            setReaderKey(ledger.readerKey);
+          } else if (getApiKey()) {
+            // This device has one and the account does not: send it up, so the
+            // next device gets it without being asked.
+            const localKey = getApiKey();
+            setReaderKey(localKey);
+            await supabase.from('goal_ledger_data').upsert(
+              { user_id: user.id, subjects: serialiseLedger(ledger.subjects, localKey), updated_at: new Date().toISOString() },
+              { onConflict: 'user_id' },
+            );
+          }
         } else {
           // Migrate the old browser-only data once if this device still has it.
           // 'study-tracker:subjects' is the key the pre-Supabase app wrote to.
@@ -120,7 +139,7 @@ export default function StudyTracker() {
             const { error: insertError } = await supabase
               .from('goal_ledger_data')
               .upsert(
-                { user_id: user.id, subjects: initialSubjects },
+                { user_id: user.id, subjects: serialiseLedger(initialSubjects, getApiKey()) },
                 { onConflict: 'user_id' }
               );
             if (insertError) throw insertError;
@@ -149,8 +168,12 @@ export default function StudyTracker() {
           filter: `user_id=eq.${user.id}`,
         },
         payload => {
-          if (!cancelled && Array.isArray(payload.new?.subjects)) {
-            setSubjects(payload.new.subjects);
+          if (cancelled || !payload.new?.subjects) return;
+          const ledger = parseLedger(payload.new.subjects);
+          setSubjects(ledger.subjects);
+          if (ledger.readerKey && ledger.readerKey !== getApiKey()) {
+            setApiKey(ledger.readerKey);
+            setReaderKey(ledger.readerKey);
           }
         }
       )
@@ -246,13 +269,14 @@ export default function StudyTracker() {
     });
   }, []);
 
-  const persist = useCallback(async (next) => {
+  const persist = useCallback(async (next, keyOverride) => {
     if (!user) return;
     try {
+      const key = keyOverride === undefined ? getApiKey() : keyOverride;
       const { error } = await supabase
         .from('goal_ledger_data')
         .upsert(
-          { user_id: user.id, subjects: next, updated_at: new Date().toISOString() },
+          { user_id: user.id, subjects: serialiseLedger(next, key), updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
       if (error) throw error;
@@ -268,6 +292,14 @@ export default function StudyTracker() {
     persist(next);
   }, [persist]);
 
+  // Kept on this device so every request can reach it without waiting, and on
+  // the account so the next device does not have to be told again.
+  const saveReaderKey = useCallback((key) => {
+    setApiKey(key);
+    setReaderKey(key || '');
+    persist(subjects, key || '');
+  }, [persist, subjects]);
+
   // Subjects made before colours existed have none, so give each a distinct one
   // and save it. Once per session, and only when something is actually missing.
   const accentsBackfilled = useRef(false);
@@ -280,8 +312,8 @@ export default function StudyTracker() {
   }, [loaded, user, subjects, updateSubjects]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission }),
-    [subjects, updateSubjects, weekOffset, editing, notifPermission]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey]
   );
 
   const handleAuthSubmit = async (e) => {

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { PROVIDERS, getApiKey, looksLikeApiKey, providerOf, setApiKey } from '../lib/apikey';
+import { PROVIDERS, getApiKey, looksLikeApiKey, providerOf } from '../lib/apikey';
+import { useLedger } from '../lib/ledger';
 
 // Reading papers costs money on some providers and nothing on others, so the
-// key belongs to whoever is reading them. Pasting it here keeps it in this
-// browser rather than in the site's build — the difference between your key
-// and everybody's key.
+// key belongs to whoever is reading them. Pasting it here puts it on the
+// account rather than in the site's build — the difference between your key
+// and everybody's key — and asking once rather than once per device.
 export default function ApiKeyDialog({ onClose }) {
+  const { saveReaderKey } = useLedger();
   const [value, setValue] = useState(getApiKey());
   const [touched, setTouched] = useState(false);
 
@@ -21,7 +23,7 @@ export default function ApiKeyDialog({ onClose }) {
   const valid = trimmed === '' || looksLikeApiKey(trimmed);
 
   const save = () => {
-    setApiKey(trimmed);
+    saveReaderKey(trimmed);
     onClose();
   };
 
@@ -86,8 +88,9 @@ export default function ApiKeyDialog({ onClose }) {
         )}
 
         <p className="text-xs text-stone-500 mt-3">
-          The key is kept in this browser and sent with each upload. It is never built into the site, so
-          nobody else visiting it can use your key. Clear the box and save to remove it.
+          Saved to your account, so it works on every device you sign in on — add it once and never
+          again. It is never built into the site, so nobody else visiting it can use your key. Clear the
+          box and save to remove it everywhere.
         </p>
 
         {provider === 'gemini' && (
