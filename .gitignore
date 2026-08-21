@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# A real exam paper, generated locally by "npm run fixture"
+tests/fixtures.mjs

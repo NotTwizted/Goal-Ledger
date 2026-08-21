@@ -87,6 +87,23 @@ function detectSitting(lines) {
 
 // Everything printed between one question opening and the next, which is what
 // a topic can be recognised from.
+// A page of an exam paper carries more furniture than words: a margin
+// watermark set down the side of every page, the printer's code, "Turn over".
+// The line grouping picks it up mid-sentence because it shares a row with the
+// question, and none of it says anything about what is being asked. It is not
+// harmless noise either — "DO NOT WRITE IN THIS AREA" was on its own enough to
+// file a differentiation question under "Area under a curve".
+const FURNITURE = [
+  /DO\s*NOT\s*WRITE\s*IN\s*THIS\s*AREA/gi,
+  /Leave\s+blank/gi,
+  /\*?P\d{5}[0-9A-Z]*\*?/g,
+  /\bTurn\s+over\b/gi,
+  /\bBLANK\s+PAGE\b/gi,
+];
+
+const stripFurniture = (text) =>
+  FURNITURE.reduce((out, re) => out.replace(re, ' '), text).replace(/\s+/g, ' ').trim();
+
 function collectWording(lines) {
   const wording = new Map();
   const readOpener = makeOpenerReader();
@@ -107,7 +124,8 @@ function collectWording(lines) {
     // what the question was on.
     if (/^Question\s+\d+\s+continued/i.test(text) || /^_+$/.test(text)) return;
 
-    if (current) wording.set(current, `${wording.get(current) || ''} ${text}`.trim());
+    const words = stripFurniture(text);
+    if (current && words) wording.set(current, `${wording.get(current) || ''} ${words}`.trim());
   });
 
   return wording;

@@ -53,6 +53,24 @@ const VOCABULARY = [
   { terms: ['projectile', 'suvat', 'acceleration', 'velocity'], topics: ['kinematics', 'motion'] },
 ];
 
+// Some of the strongest signals in a maths paper are formulae, and a PDF
+// takes them apart: "dy/dx" extracts as "d y ... d x" with the two halves at
+// opposite ends of a sentence, and "a(x + b)² + c" as "2 a ( x + b ) + c" with
+// the square migrating to the front. Nothing matching whole words can see
+// those, so they are matched as shapes instead.
+const PATTERNS = [
+  // A derivative, however the spacing fell out. Checked before the bare dx
+  // below, which is all that is left of an integral once the sign is dropped.
+  { re: /\bd\s*y\b[\s\S]{0,60}?\bd\s*x\b|\bdy\s*\/\s*dx\b/i, topics: ['differentiation'], weight: 6 },
+  { re: /\bd\s*x\b|\bd\s*t\b/i, topics: ['integration'], weight: 4 },
+  // "in the form a(x + b)^2 + c" — completing the square, never named as such.
+  { re: /in\s*the\s*form\s*\d*\s*[a-z]\s*\(\s*[a-z]\s*[+\u2013\u2212-]\s*[a-z]\s*\)/i,
+    topics: ['completing the square', 'quadratics'], weight: 7 },
+  // "y = ax^2 + bx + c" written out, whatever the coefficients.
+  { re: /\b\d*\s*x\s*2\s*[+\u2013\u2212-]\s*\d+\s*x\s*[+\u2013\u2212-]\s*\d+/i,
+    topics: ['quadratics'], weight: 4 },
+];
+
 function tokenise(text) {
   return (text || '')
     .toLowerCase()
@@ -71,7 +89,17 @@ const mentions = (haystack, term) => {
   return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, 'i').test(haystack);
 };
 
-function scoreText(text, candidateName) {
+// Each entry lists its topics most specific first, and the broader ones are
+// there so the parent topic gets the credit too. A subtopic may only claim the
+// specific one: otherwise "Solving quadratics by factorising" collects the
+// evidence for completing the square — on the strength of sharing the word
+// "quadratics" — and beats "Completing the square" to it. The topic it belongs
+// to passes its own score down separately, which is where the broad evidence
+// reaches a subtopic legitimately.
+const appliesTo = (candidate, topics, subtopic) =>
+  (subtopic ? topics.slice(0, 1) : topics).some(t => candidate.includes(t));
+
+function scoreText(text, candidateName, exact) {
   const haystack = ` ${text.toLowerCase()} `;
   let score = 0;
 
@@ -80,8 +108,13 @@ function scoreText(text, candidateName) {
   });
 
   const candidate = candidateName.toLowerCase();
+  PATTERNS.forEach(entry => {
+    if (!appliesTo(candidate, entry.topics, exact)) return;
+    if (entry.re.test(text)) score += entry.weight;
+  });
+
   VOCABULARY.forEach(entry => {
-    if (!entry.topics.some(t => candidate.includes(t))) return;
+    if (!appliesTo(candidate, entry.topics, exact)) return;
     entry.terms.forEach(term => {
       // A phrase is far more telling than a single word: "form a(x" can only
       // be completing the square, where "square" alone could be anything.
@@ -95,9 +128,9 @@ function scoreText(text, candidateName) {
 // A question's opening states what it is about; later parts wander. Question 5
 // of a real paper opens on completing the square and closes on inequalities,
 // and it is the opening that should decide where the marks are filed.
-function scoreCandidate(questionText, candidateName) {
+function scoreCandidate(questionText, candidateName, exact) {
   const head = questionText.slice(0, Math.max(120, Math.round(questionText.length * 0.45)));
-  return scoreText(questionText, candidateName) + scoreText(head, candidateName) * 0.6;
+  return scoreText(questionText, candidateName, exact) + scoreText(head, candidateName, exact) * 0.6;
 }
 
 // Returns "Topic" or "Topic|Subtopic" — the shape the scan dialog stores — or
@@ -114,7 +147,7 @@ export function matchQuestionToTopic(questionText, topics, threshold = 3) {
     (topic.subtopics || []).forEach(subtopic => {
       // A subtopic inherits some of its topic's evidence: a question about
       // quadratics is about quadratics whichever subtopic it lands on.
-      const score = scoreCandidate(questionText, subtopic.name) + topicScore * 0.5;
+      const score = scoreCandidate(questionText, subtopic.name, true) + topicScore * 0.5;
       if (score > best.score) best = { target: `${topic.name}|${subtopic.name}`, score };
     });
   });

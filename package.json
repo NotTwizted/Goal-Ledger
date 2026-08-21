@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --import ./tests/register.mjs tests/run.mjs"
+    "test": "node --import ./tests/register.mjs tests/run.mjs",
+    "fixture": "node tests/dump-lines.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
