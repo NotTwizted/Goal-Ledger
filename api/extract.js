@@ -3,15 +3,17 @@
 // JavaScript and spend. So the call is made here, where the key stays.
 //
 // Two providers are supported and the key itself says which is which — an
-// Anthropic key begins "sk-ant-", a Google one "AIza". The app sends the same
-// request either way and gets the same shape back, so nothing else has to know
-// which one read the paper.
+// Anthropic key begins "sk-ant-", a Google one "AIza" or "AQ." depending on
+// when it was issued. The app sends the same request either way and gets the
+// same shape back, so nothing else has to know which one read the paper.
 
 export const config = { maxDuration: 60 };
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-const providerOf = (key) => (String(key || '').startsWith('AIza') ? 'gemini' : 'anthropic');
+const GOOGLE_PREFIXES = ['AIza', 'AQ.'];
+const providerOf = (key) =>
+  (GOOGLE_PREFIXES.some(prefix => String(key || '').startsWith(prefix)) ? 'gemini' : 'anthropic');
 
 // Anthropic's message shape is what the app speaks; this turns one request
 // into Google's equivalent. A document or image block becomes inline data, and

@@ -1,6 +1,7 @@
 // Reading a paper needs a key from a model provider. Two are supported, and
-// the key says which: Google's begin "AIza", Anthropic's "sk-ant-". Nothing
-// has to be chosen from a menu — paste either and it is recognised.
+// the key says which: Anthropic's begin "sk-ant-", Google's "AIza" or, for the
+// ones AI Studio issues now, "AQ.". Nothing has to be chosen from a menu —
+// paste any of them and it is recognised.
 //
 // A key kept here stays in this browser. It is sent to this site's own
 // /api/extract with each request and forwarded from there, so it is never
@@ -11,15 +12,16 @@ const STORAGE_KEY = 'study-tracker:api-key';
 const LEGACY_KEY = 'study-tracker:anthropic-key';
 
 export const PROVIDERS = {
-  gemini: { name: 'Google Gemini', note: 'free tier', prefix: 'AIza' },
-  anthropic: { name: 'Anthropic Claude', note: 'paid', prefix: 'sk-ant-' },
+  // Google has issued two shapes of key and both are current: the long-standing
+  // "AIza..." and the "AQ..." ones AI Studio hands out now.
+  gemini: { name: 'Google Gemini', note: 'free tier', prefixes: ['AIza', 'AQ.'] },
+  anthropic: { name: 'Anthropic Claude', note: 'paid', prefixes: ['sk-ant-'] },
 };
 
 export function providerOf(key) {
   const value = (key || '').trim();
-  if (value.startsWith(PROVIDERS.gemini.prefix)) return 'gemini';
-  if (value.startsWith(PROVIDERS.anthropic.prefix)) return 'anthropic';
-  return null;
+  return Object.keys(PROVIDERS).find(name =>
+    PROVIDERS[name].prefixes.some(prefix => value.startsWith(prefix))) || null;
 }
 
 export function getApiKey() {
@@ -58,5 +60,7 @@ export function providerLabel(key = getApiKey()) {
 
 export function looksLikeApiKey(key) {
   const value = (key || '').trim();
-  return /^sk-ant-[A-Za-z0-9\-_]{20,}$/.test(value) || /^AIza[A-Za-z0-9\-_]{20,}$/.test(value);
+  return /^sk-ant-[A-Za-z0-9\-_]{20,}$/.test(value)
+    || /^AIza[A-Za-z0-9\-_]{20,}$/.test(value)
+    || /^AQ\.[A-Za-z0-9\-_.]{20,}$/.test(value);
 }

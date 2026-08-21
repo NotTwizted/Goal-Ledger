@@ -72,7 +72,7 @@ export default function ApiKeyDialog({ onClose }) {
           value={value}
           onChange={e => { setValue(e.target.value); setTouched(true); }}
           onKeyDown={e => e.key === 'Enter' && valid && save()}
-          placeholder="AIza… or sk-ant-…"
+          placeholder="AQ.… or AIza… or sk-ant-…"
           className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
 
@@ -83,7 +83,7 @@ export default function ApiKeyDialog({ onClose }) {
         )}
         {touched && !valid && !provider && (
           <p className="text-xs text-rose-600 mt-1.5">
-            Not a key either provider issues — Google's begin AIza, Anthropic's sk-ant-.
+            Not a key either provider issues — Google's begin AQ. or AIza, Anthropic's sk-ant-.
           </p>
         )}
 
