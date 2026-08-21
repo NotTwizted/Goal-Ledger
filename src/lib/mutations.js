@@ -58,17 +58,30 @@ const withMastery = (unit) => {
 
   const marked = unitScores(unit).length > 0;
 
+  // The marks that made this amber are gone and nothing was ticked by hand, so
+  // it goes back to untouched. Without this, deleting a paper left every
+  // subtopic it had marked looking as though the student had covered it.
+  if (!marked && unit.coveredByMarks) {
+    return { ...unit, status: 'not-started', coveredAt: null, completedAt: null, coveredByMarks: false };
+  }
+
   if (unit.status === 'done') {
     return {
       ...unit,
       status: unit.coveredAt || marked ? 'in-progress' : 'not-started',
       coveredAt: unit.coveredAt || (marked ? new Date().toISOString() : null),
+      coveredByMarks: unit.coveredAt ? unit.coveredByMarks : marked,
       completedAt: null,
     };
   }
 
   if (marked && unit.status === 'not-started') {
-    return { ...unit, status: 'in-progress', coveredAt: unit.coveredAt || new Date().toISOString() };
+    return {
+      ...unit,
+      status: 'in-progress',
+      coveredAt: unit.coveredAt || new Date().toISOString(),
+      coveredByMarks: !unit.coveredAt,
+    };
   }
 
   return unit;
@@ -407,6 +420,20 @@ function applyPaperToTopic(topic, questions, label, sourceId) {
   };
 }
 
+const withoutMarksFrom = (unit, pastPaperId, label) => {
+  const scores = unitScores(unit);
+  const kept = scores.filter(score =>
+    (score.sourceId ? score.sourceId !== pastPaperId : score.label !== label));
+  return kept.length === scores.length ? unit : withScores(unit, kept);
+};
+
+const stripPaper = (topic, pastPaperId, label) => {
+  const bare = withoutMarksFrom(topic, pastPaperId, label);
+  const subtopics = (topic.subtopics || []).map(st => withoutMarksFrom(st, pastPaperId, label));
+  const changed = subtopics.some((st, i) => st !== topic.subtopics[i]);
+  return changed ? { ...bare, subtopics } : bare;
+};
+
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
@@ -448,20 +475,6 @@ export function revisePaperMarks(subjects, subjectId, pastPaperId, scores) {
   return writePaperMarks(subjects, subjectId, pastPaperId, scores, true);
 }
 
-const withoutMarksFrom = (unit, pastPaperId, label) => {
-  const scores = unitScores(unit);
-  const kept = scores.filter(score =>
-    (score.sourceId ? score.sourceId !== pastPaperId : score.label !== label));
-  return kept.length === scores.length ? unit : withScores(unit, kept);
-};
-
-const stripPaper = (topic, pastPaperId, label) => {
-  const bare = withoutMarksFrom(topic, pastPaperId, label);
-  const subtopics = (topic.subtopics || []).map(st => withoutMarksFrom(st, pastPaperId, label));
-  const changed = subtopics.some((st, i) => st !== topic.subtopics[i]);
-  return changed ? { ...bare, subtopics } : bare;
-};
-
 function writePaperMarks(subjects, subjectId, pastPaperId, scores, revising) {
   return mapSubject(subjects, subjectId, s => {
     const record = (s.pastPapers || []).find(pp => pp.id === pastPaperId);
@@ -491,11 +504,22 @@ function writePaperMarks(subjects, subjectId, pastPaperId, scores, revising) {
   });
 }
 
+// A paper's marks go with it. Leaving them behind meant a topic kept a score
+// from a paper no longer on record, with nothing left to explain where it had
+// come from and no way to be rid of it.
 export function deletePastPaper(subjects, subjectId, pastPaperId) {
-  return mapSubject(subjects, subjectId, s => ({
-    ...s,
-    pastPapers: (s.pastPapers || []).filter(pp => pp.id !== pastPaperId),
-  }));
+  return mapSubject(subjects, subjectId, s => {
+    const record = (s.pastPapers || []).find(pp => pp.id === pastPaperId);
+    const label = record && record.session && record.year
+      ? `${record.session} ${record.year}`
+      : 'Past paper';
+
+    return {
+      ...s,
+      topics: record ? s.topics.map(t => stripPaper(t, pastPaperId, label)) : s.topics,
+      pastPapers: (s.pastPapers || []).filter(pp => pp.id !== pastPaperId),
+    };
+  });
 }
 
 export function addUnitTestRecord(subjects, subjectId, topicId, record) {

@@ -74,7 +74,7 @@ export default function PastPapersPage({ subject, paper }) {
       {pendingDelete && (
         <ConfirmDialog
           title={`Delete ${pastPaperLabel(pendingDelete)}?`}
-          body="The paper's recorded mistakes go with it. Scores already applied to your topics stay as they are."
+          body="Everything this paper left goes with it — its mistakes, and the marks it put on every topic and subtopic it touched. Marks from your other papers are unaffected."
           onConfirm={() => {
             updateSubjects(mutate.deletePastPaper(subjects, subject.id, pendingDelete.id));
             setPendingDelete(null);
