@@ -50,9 +50,10 @@ function toGeminiRequest(body) {
       // from variety.
       temperature: 0,
       // Reading marks off a page is not a problem that rewards long reasoning,
-      // and the reasoning is most of the wait. Dropped from the request if the
-      // model does not know the field.
-      thinkingConfig: { thinkingLevel: 'low' },
+      // and the reasoning is most of the wait — so the first pass thinks
+      // briefly. A pass that has to reconcile a total asks for more. Dropped
+      // from the request if the model does not know the field.
+      thinkingConfig: { thinkingLevel: body?.thinking === 'high' ? 'high' : 'low' },
     },
   };
 }

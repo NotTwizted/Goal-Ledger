@@ -83,6 +83,21 @@ export default function PastPaperPage({ subject, pastPaper }) {
         </p>
       </div>
 
+      {/* The marker's own total is the one check the paper can settle itself.
+          When it still disagrees after a careful re-read, say so here rather
+          than let a wrong figure pass as a right one. */}
+      {pastPaper.totalMismatch && (
+        <div className="mb-5 p-3 bg-white border border-rose-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#be123c' }}>
+          <p className="text-xs text-stone-700 leading-relaxed">
+            <span className="font-medium">These marks may not be right.</span> The marker wrote a total of{' '}
+            <span className="font-mono">{pastPaper.totalMismatch.reported}</span> on this paper, but the
+            marks read off it come to <span className="font-mono">{pastPaper.totalMismatch.read}</span>.
+            It was read twice and they still disagree, so at least one question is wrong — turn on Edit
+            to put it right.
+          </p>
+        </div>
+      )}
+
       {correcting && (
         <div className="mb-5 p-4 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#b45309' }}>
           <div className="flex items-center gap-2 mb-1">

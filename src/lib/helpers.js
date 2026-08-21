@@ -107,13 +107,14 @@ export function extractJson(text) {
 // Goes through this site's own /api/extract, which holds the API key. Calling
 // Anthropic straight from the browser fails with "x-api-key header is
 // required", and adding the key here would publish it to every visitor.
-export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens) {
+export async function callClaudeWithFile(fileContentBlock, promptText, maxTokens, thinking) {
   const response = await fetch('/api/extract', {
     method: 'POST',
     headers: requestHeaders(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
+      ...(thinking ? { thinking } : {}),
       messages: [
         {
           role: 'user',

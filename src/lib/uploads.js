@@ -16,8 +16,7 @@ const partLabel = (part, index, total) => {
 // not all at once.
 const AT_ONCE = 3;
 
-async function readParts(file, buildPrompt, maxTokens, onProgress) {
-  const parts = await prepareParts(file);
+async function readParts(parts, buildPrompt, maxTokens, onProgress, thinking) {
   const results = new Array(parts.length);
   let done = 0;
 
@@ -32,6 +31,7 @@ async function readParts(file, buildPrompt, maxTokens, onProgress) {
         contentBlock(part),
         buildPrompt(partLabel(part, from + offset, parts.length), parts.length === 1),
         maxTokens,
+        thinking,
       );
       done += 1;
       if (onProgress) onProgress(done, parts.length);
@@ -48,7 +48,7 @@ export async function extractChecklistDraft(file, isStudy, onProgress) {
     ? 'This file shows content from a syllabus or specification. Extract the main topics and, under each, its subtopics. Cover every page — do not stop partway through. Respond with ONLY a JSON array of objects, no other text, no markdown fences. Format: [{"topic": "Cell structure", "subtopics": ["Prokaryotic vs eukaryotic cells", "Organelles"]}]. If a main topic has no subtopics listed, use an empty array.'
     : 'This file shows a list of goals or tasks. Extract every individual item as a short line. Respond with ONLY a JSON array of strings, no other text, no markdown fences. Example: ["Do 10 pullups", "Run 5km"]') + suffix;
 
-  const { results } = await readParts(file, buildPrompt, 8000, onProgress);
+  const { results } = await readParts(await prepareParts(file), buildPrompt, 8000, onProgress);
   const merged = results.flatMap(r => (Array.isArray(r) ? r : []));
   if (!merged.length) throw new Error('No topics were found in that file');
 
@@ -169,35 +169,111 @@ function syllabusOutline(topics) {
     .join('\n');
 }
 
+// How marks are written on a marked script, and what to do when one cannot be
+// read. The last sentence is the important one: a mark it cannot make out used
+// to come back as 0, which is indistinguishable from a question the student
+// actually scored nothing on, and quietly cost them marks they had earned.
+const MARKING_BRIEF = `The marks are handwritten by whoever marked it. Look for a number in the margin beside each part, or beside the total line at the end of a question; ticks and crosses in the working are not the mark. Where a mark has been crossed out and rewritten, take the final one. If a mark is missing, illegible, or you are not certain of it, give null for that question — never 0 and never a guess. 0 means the marker wrote 0.`;
+
+// What the paper says about itself, read in the browser before anything is
+// sent. On a paper that prints "(Total for Question 3 is 5 marks)" this is
+// exact and free, so the reader is told the allocations rather than left to
+// read them off the page — halving what it can get wrong, since only the
+// student's own marks are left to make out.
+async function paperFacts(file, topics) {
+  if (!isPdf(file)) return null;
+  try {
+    const scanned = await scanPaper(file, topics);
+    const allocations = scanned.questions
+      .filter(q => q.marksAvailable > 0)
+      .map(q => `Q${q.question} is out of ${q.marksAvailable}`);
+    if (!allocations.length) return null;
+    return {
+      session: scanned.session || null,
+      year: scanned.year || null,
+      allocations,
+      total: scanned.questions.reduce((sum, q) => sum + q.marksAvailable, 0),
+    };
+  } catch (e) {
+    // Not every paper prints its allocations, and a photograph prints nothing.
+    return null;
+  }
+}
+
+const questionsOfResults = (results) =>
+  results.flatMap(r => (Array.isArray(r?.questions) ? r.questions : []));
+
+const scoredTotal = (questions) =>
+  questions.reduce((sum, q) => sum + (Number(q.marksScored) || 0), 0);
+
 async function readPaperWithModel(file, paper, topics, onProgress) {
   const outline = syllabusOutline(topics);
+  const facts = await paperFacts(file, topics);
+  const parts = await prepareParts(file);
+
   // A paper split into parts has its feedback written once at the end, from all
   // of them together. Asking each part for feedback as well meant writing three
   // sets of it and throwing away three — most of the wait, for nothing.
   const buildPrompt = (suffix, single) =>
-    `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests, the subtopic within that topic`
-    + (outline ? `, the marks the student scored on it as an integer, and the marks available for it as an integer.\n\nThis is the student's syllabus. Each line is a topic, then the subtopics under it:\n\n${outline}\n\nUse these names EXACTLY as written above for both "topic" and "subtopic" — copy them character for character rather than describing the question in your own words, because they are matched by name against the student's checklist. Pick the single subtopic that fits best even when a question touches more than one. Only invent a label if a question genuinely fits nothing on the list, and say so by leaving "subtopic" null rather than writing something close.` : `, the marks the student scored on it as an integer, and the marks available for it as an integer.`)
-    + ` Where marks were lost, also describe the mistake in one short sentence.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}. If the session or year can't be found, use null for that field.`;
+    `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests, the subtopic within that topic, the marks the student scored on it as an integer, and the marks available for it as an integer.`
+    + (outline ? `\n\nThis is the student's syllabus. Each line is a topic, then the subtopics under it:\n\n${outline}\n\nUse these names EXACTLY as written above for both "topic" and "subtopic" — copy them character for character rather than describing the question in your own words, because they are matched by name against the student's checklist. Pick the single subtopic that fits best even when a question touches more than one. Only invent a label if a question genuinely fits nothing on the list, and say so by leaving "subtopic" null rather than writing something close.` : '')
+    + (facts ? `\n\nThe paper itself states these mark allocations, read from its printed text. Use them for "marksAvailable" rather than reading them off the page again, and use the same question numbering:\n\n${facts.allocations.join('\n')}` : '')
+    + `\n\n${MARKING_BRIEF}\n\nAlso report the total the marker wrote on the paper — the figure in the total box on the front cover, or the sum written at the end — as "reportedTotal". Give null if no such figure is written anywhere. Do not put your own sum there.`
+    + ` Where marks were lost, also describe the mistake in one short sentence.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "reportedTotal": 62, "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}. If the session or year can't be found, use null for that field.`;
 
-  const { results, partCount } = await readParts(file, buildPrompt, 8000, onProgress);
-
-  const questions = results.flatMap(r => (Array.isArray(r?.questions) ? r.questions : []));
+  let results = await readParts(parts, buildPrompt, 8000, onProgress).then(r => r.results);
+  let questions = questionsOfResults(results);
   if (!questions.length) throw new Error('No questions could be read from that file');
 
+  // The one check the paper can settle itself. If the marker's own total does
+  // not match what was read off the page, something was misread — so it is
+  // read again, slowly, and whichever pass agrees with the total is kept.
+  const reported = results.map(r => r?.reportedTotal).find(t => Number.isFinite(Number(t)));
+  const target = reported === undefined ? null : Number(reported);
+
+  if (target !== null && scoredTotal(questions) !== target) {
+    const recheck = (suffix) =>
+      `This file is a corrected/marked past exam paper.${suffix} The marker wrote a total of ${target} on it, but a first reading of the individual marks came to ${scoredTotal(questions)}. Go through every question again and read each handwritten mark carefully, so that they add to ${target}. Give the question number, the topic, the subtopic, the marks scored and the marks available for each.`
+      + (outline ? `\n\nUse these topic and subtopic names EXACTLY as written:\n\n${outline}` : '')
+      + (facts ? `\n\nThe printed mark allocations are:\n\n${facts.allocations.join('\n')}` : '')
+      + `\n\n${MARKING_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "..."}]}`;
+
+    try {
+      const second = await readParts(parts, recheck, 8000, onProgress, 'high').then(r => r.results);
+      const reread = questionsOfResults(second);
+      // Only taken if it actually reconciles; a second wrong answer is no
+      // better than the first, and the first at least came with feedback.
+      if (reread.length && scoredTotal(reread) === target) {
+        const byNumber = new Map(reread.map(q => [String(q.question), q]));
+        questions = questions.map(q => {
+          const better = byNumber.get(String(q.question));
+          return better ? { ...q, ...better, mistake: better.mistake || q.mistake } : q;
+        });
+      }
+    } catch (e) {
+      // The first reading stands, and the mismatch is recorded below.
+    }
+  }
+
   const identified = results.find(r => r?.session || r?.year) || {};
-  const feedback = partCount === 1
+  const feedback = parts.length === 1
     ? (results[0]?.feedback || null)
     : await feedbackFromQuestions(questions);
+
+  const settled = target === null || scoredTotal(questions) === target;
 
   return {
     id: uid(),
     paper,
     fileName: file.name,
-    session: identified.session || null,
-    year: identified.year || null,
+    session: identified.session || facts?.session || null,
+    year: identified.year || facts?.year || null,
     uploadedAt: new Date().toISOString(),
     questions,
     readBy: 'model',
+    // Said plainly on the paper when the marks still do not add up, rather
+    // than left to be noticed.
+    ...(settled ? {} : { totalMismatch: { reported: target, read: scoredTotal(questions) } }),
     feedback: feedback && typeof feedback === 'object' ? feedback : null,
     // Kept for the mistakes view, which lists only what went wrong.
     mistakes: questions
@@ -218,7 +294,7 @@ export async function extractUnitTest(file, topicName, subtopicNames, onProgress
     + (subtopicNames.length ? ` — use one of these names EXACTLY as written, copied character for character rather than described in your own words, because they are matched by name against the student's checklist: ${subtopicNames.join(' | ')}. Only invent a label if a question fits none of them` : '')
     + `, the marks the student scored on it as an integer, the marks available for it as an integer, and where marks were lost a one-sentence description of the mistake. Then list which subtopics need the most focus, ranked by how many marks were lost on them.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}`;
 
-  const { results, partCount } = await readParts(file, buildPrompt, 6000, onProgress);
+  const { results, partCount } = await readParts(await prepareParts(file), buildPrompt, 6000, onProgress);
 
   const details = results.flatMap(r => (Array.isArray(r?.details) ? r.details : []));
   if (!details.length) throw new Error('No questions could be read from that file');
