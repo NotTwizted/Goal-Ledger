@@ -20,13 +20,31 @@ const TOTAL_LINE = /Total\s+for\s+Question\s+(\d+)\s+is\s+(\d+)\s+marks?/gi;
 // A trailing "(4)" or "[4]" is how a part-question's marks are printed.
 const PART_MARKS = /[[(](\d{1,2})[\])]\s*$/;
 
-// A line that opens a question: "1.", "2 ", "13. (a)"
-const QUESTION_START = /^(\d{1,2})[.)]?\s/;
+// A line that opens a question: "1.", "2 ", "13. (a)", or just "5." where a
+// figure follows. Numbers are only accepted in sequence, which is what keeps a
+// page number at the foot of the page from opening a question of its own.
+const QUESTION_NUMBER = /^(\d{1,2})\s*[.)]?\s*(.*)$/;
 
+function makeOpenerReader() {
+  let expected = 1;
+  return (text, insideQuestion) => {
+    const match = text.match(QUESTION_NUMBER);
+    if (!match) return null;
+    if (Number(match[1]) !== expected) return null;
+    // A bare number is only an opener between questions; mid-question it is a
+    // page number or a stray figure label.
+    if (!match[2].trim() && insideQuestion) return null;
+    expected += 1;
+    return String(match[1]);
+  };
+}
+
+// "may" on its own is not a month: every Edexcel cover page says "there may be
+// more space than you need", which read as the May/June sitting.
 const SESSION_PATTERNS = [
-  { re: /\b(?:may|june|may\s*\/\s*june|summer)\b/i, session: 'May/June' },
-  { re: /\b(?:october|november|oct\s*\/\s*nov|autumn|winter)\b/i, session: 'Oct/Nov' },
-  { re: /\b(?:january|jan)\b/i, session: 'January' },
+  { re: /\bmay\s*\/\s*june\b|\bjune\b|\bsummer\b/i, session: 'May/June' },
+  { re: /\boctober\b|\bnovember\b|\boct\s*\/\s*nov\b|\bautumn\b|\bwinter\b/i, session: 'Oct/Nov' },
+  { re: /\bjanuary\b/i, session: 'January' },
 ];
 
 async function readLines(file) {
@@ -71,17 +89,24 @@ function detectSitting(lines) {
 // a topic can be recognised from.
 function collectWording(lines) {
   const wording = new Map();
+  const readOpener = makeOpenerReader();
   let current = null;
 
   lines.forEach(({ text }) => {
-    const opener = text.match(QUESTION_START);
-    if (opener) current = opener[1];
+    const opened = readOpener(text, current !== null);
+    if (opened) current = opened;
+
     TOTAL_LINE.lastIndex = 0;
     if (TOTAL_LINE.test(text)) {
       // The total line closes a question and says nothing about its subject.
-      if (current) current = null;
+      current = null;
       return;
     }
+
+    // Continuation headers and the answer lines beneath them say nothing about
+    // what the question was on.
+    if (/^Question\s+\d+\s+continued/i.test(text) || /^_+$/.test(text)) return;
+
     if (current) wording.set(current, `${wording.get(current) || ''} ${text}`.trim());
   });
 
@@ -104,16 +129,14 @@ function fromTotals(lines) {
 // Otherwise: add up the part marks printed against each question.
 function fromPartMarks(lines) {
   const questions = [];
+  const readOpener = makeOpenerReader();
   let current = null;
 
   lines.forEach(({ text, page }) => {
-    const opener = text.match(QUESTION_START);
-    if (opener) {
-      const number = opener[1];
-      if (!current || current.question !== number) {
-        current = { question: number, marksAvailable: 0, page };
-        questions.push(current);
-      }
+    const opened = readOpener(text, current !== null);
+    if (opened) {
+      current = { question: opened, marksAvailable: 0, page };
+      questions.push(current);
     }
     const part = text.match(PART_MARKS);
     if (part && current) current.marksAvailable += Number(part[1]);

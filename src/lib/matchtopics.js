@@ -28,14 +28,14 @@ const VOCABULARY = [
   // "root" alone is treacherous: "root 5" is a surd, "real roots" is the
   // discriminant. Only the unambiguous forms count.
   { terms: ['surd', 'rationalise', 'rationalize', '√', 'root 2', 'root 3', 'root 5', 'root 6', 'root 7', 'root 10', 'in the form a + b'], topics: ['surds', 'rationalising denominators'] },
-  { terms: ['indices', 'index', 'power'], topics: ['indices'] },
+  { terms: ['indices', 'index', 'laws of indices', 'rules of indices'], topics: ['indices'] },
   { terms: ['binomial', 'expansion', 'ascending powers'], topics: ['binomial expansion'] },
   { terms: ['logarithm', 'log', 'ln', 'exponential'], topics: ['logarithms', 'exponentials'] },
   { terms: ['arithmetic series', 'geometric series', 'sigma', 'common difference', 'common ratio', 'sum to infinity'], topics: ['sequences', 'series'] },
   { terms: ['sine rule', 'cosine rule', 'trigonometric', 'sin', 'cos', 'tan', 'radians', 'degrees'], topics: ['trigonometry', 'trigonometric ratios', 'radians'] },
   { terms: ['vector', 'magnitude', 'position vector'], topics: ['vectors'] },
   { terms: ['circle', 'centre', 'radius', 'midpoint', 'perpendicular bisector'], topics: ['circle', 'coordinate geometry'] },
-  { terms: ['gradient', 'straight line', 'parallel', 'perpendicular', 'y = mx'], topics: ['straight line graphs', 'coordinate geometry'] },
+  { terms: ['gradient', 'straight line', 'parallel', 'perpendicular'], topics: ['straight line graphs', 'coordinate geometry'] },
   { terms: ['simultaneous'], topics: ['simultaneous equations', 'equations and inequalities'] },
   { terms: ['inequality', 'inequalities'], topics: ['inequalities', 'equations and inequalities'] },
   { terms: ['factorise', 'factorize', 'factor theorem', 'remainder theorem', 'polynomial'], topics: ['factorising', 'algebraic methods', 'algebraic expressions'] },
