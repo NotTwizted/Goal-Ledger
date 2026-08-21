@@ -1,4 +1,5 @@
 import { pitfallFor } from './pitfalls';
+import { recordedScore } from './helpers';
 
 // What a marked paper says about the person who sat it.
 //
@@ -23,10 +24,10 @@ function questionsOf(record) {
 
 // Total marks on the paper, where the extraction recorded them.
 export function paperScore(record) {
-  const questions = questionsOf(record);
-  const available = questions.reduce((sum, q) => sum + (Number(q.marksAvailable) || 0), 0);
+  const marked = questionsOf(record).filter(q => recordedScore(q) !== null);
+  const available = marked.reduce((sum, q) => sum + (Number(q.marksAvailable) || 0), 0);
   if (available <= 0) return null;
-  const scored = questions.reduce((sum, q) => sum + (Number(q.marksScored) || 0), 0);
+  const scored = marked.reduce((sum, q) => sum + recordedScore(q), 0);
   return { scored, available, percent: Math.round((scored / available) * 100) };
 }
 
@@ -34,8 +35,9 @@ export function paperScore(record) {
 export function lostByTopic(record) {
   const byTopic = new Map();
   questionsOf(record).forEach(q => {
+    const scored = recordedScore(q);
+    if (scored === null) return;
     const available = Number(q.marksAvailable) || 0;
-    const scored = Number(q.marksScored) || 0;
     const name = q.subtopic || q.topic || 'Unlabelled';
     const entry = byTopic.get(name)
       || { topic: name, lost: 0, available: 0, questions: [], mistakes: [] };
@@ -102,7 +104,11 @@ export function paperFeedback(record) {
   if (!areas.length) {
     return {
       source: 'derived',
-      summary: `${opening}Nothing was dropped on this paper.`,
+      // No marks lost and no marks recorded look the same from here, and only
+      // one of them is good news.
+      summary: score
+        ? `${opening}Nothing was dropped on this paper.`
+        : 'No marks have been recorded for this paper yet.',
       areas: [],
       lost: areas,
       score,

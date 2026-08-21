@@ -168,6 +168,15 @@ export async function callClaudeText(promptText, maxTokens) {
   return extractJson(text);
 }
 
+// A question whose mark was never read is unknown, not zero. Treating the two
+// the same is what would turn a paper nobody has marked yet into a 0%.
+export function recordedScore(question) {
+  const value = question?.marksScored;
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 export function findTextMatch(name, candidates) {
   const n = normText(name);
   if (!n) return null;

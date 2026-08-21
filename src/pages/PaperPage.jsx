@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ChevronRight, FileSearch, KeyRound, Loader2, Upload, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Upload, X } from 'lucide-react';
 import { computeProgress } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
@@ -8,9 +8,6 @@ import { navigate, paths } from '../lib/router';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import TopicDetail from '../components/TopicDetail';
 import ConfirmDialog from '../components/ConfirmDialog';
-import PaperScanDialog from '../components/PaperScanDialog';
-import ApiKeyDialog from '../components/ApiKeyDialog';
-import { hasApiKey } from '../lib/apikey';
 
 // Topics stay listed down the left; picking one opens it beside the list
 // rather than replacing it, so moving between topics is one click.
@@ -20,9 +17,6 @@ export default function PaperPage({ subject, paper }) {
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [pendingTopic, setPendingTopic] = useState(null);
-  const [scanning, setScanning] = useState(false);
-  const [needsKey, setNeedsKey] = useState(false);
-  const [showKey, setShowKey] = useState(false);
 
   const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
@@ -40,21 +34,16 @@ export default function PaperPage({ subject, paper }) {
   // middle costs only itself.
   const uploadPastPapers = async (files) => {
     if (!files.length) return;
-    if (!hasApiKey()) {
-      setNeedsKey(true);
-      return;
-    }
     setError('');
     setUploadProgress({ done: 0, total: files.length });
 
-    const topicNames = paperTopics.map(t => t.name);
     let next = subjects;
     const failed = [];
     const added = [];
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const record = await extractPastPaper(files[i], paper, topicNames,
+        const record = await extractPastPaper(files[i], paper, paperTopics,
           (part, parts) => setUploadProgress({ done: i, total: files.length, part: part + 1, parts }));
         next = mutate.addPastPaperRecord(next, subject.id, paper, record);
         added.push(record.id);
@@ -195,50 +184,6 @@ export default function PaperPage({ subject, paper }) {
             />
           )}
         </div>
-      )}
-
-      {needsKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-6" onClick={() => setNeedsKey(false)}>
-          <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 mb-2">
-              <KeyRound size={18} className="shrink-0 text-stone-700" />
-              <h2 className="font-serif text-lg text-stone-900">A reader key is needed first</h2>
-            </div>
-            <p className="text-sm text-stone-600 mb-3">
-              Reading the marks off a paper means sending it to a model, and that needs a key. Google
-              gives one free — no card, no billing — and it takes about two minutes.
-            </p>
-            <p className="text-xs text-stone-500 mb-4">
-              Without one you can still add a paper by scanning it, which reads the question list and
-              mark allocations out of the PDF but leaves your own marks to enter.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => { setNeedsKey(false); setScanning(true); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-stone-600 border border-stone-300 rounded"
-              >
-                <FileSearch size={14} /> Scan instead
-              </button>
-              <button
-                onClick={() => { setNeedsKey(false); setShowKey(true); }}
-                className="px-3 py-1.5 text-sm text-white bg-stone-800 rounded font-medium"
-              >
-                Add a key
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showKey && <ApiKeyDialog onClose={() => setShowKey(false)} />}
-
-      {scanning && (
-        <PaperScanDialog
-          subject={subject}
-          paper={paper}
-          topics={paperTopics}
-          onClose={() => setScanning(false)}
-        />
       )}
 
       {pendingTopic && (

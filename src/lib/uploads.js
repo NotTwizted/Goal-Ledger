@@ -1,5 +1,6 @@
 import { callClaudeText, callClaudeWithFile, uid } from './helpers';
 import { contentBlock, prepareParts } from './fileprep';
+import { scanPaper } from './pdfscan';
 
 // A file too large to send in one request is split into parts that fit, each
 // read on its own and the questions pooled. The student sees one paper; the
@@ -67,7 +68,60 @@ async function feedbackFromQuestions(questions) {
   }
 }
 
-export async function extractPastPaper(file, paper, topicNames, onProgress) {
+// Reading a paper has two routes and takes them in order, without asking.
+// The model route needs a key — held on the account, or on the server, so it is
+// asked for once at most and often never. When there is none, or the model
+// cannot make sense of the file, the PDF is read here in the browser instead:
+// that gives the paper's sitting, its questions, their mark allocations and
+// their topics, everything except what the student scored. Either way a paper
+// gets added and the upload does not stop to ask anything.
+export async function extractPastPaper(file, paper, topics, onProgress) {
+  const topicNames = (topics || []).map(t => (typeof t === 'string' ? t : t.name)).filter(Boolean);
+  try {
+    return await readPaperWithModel(file, paper, topicNames, onProgress);
+  } catch (modelError) {
+    try {
+      return await paperFromScan(file, paper, topics || []);
+    } catch (scanError) {
+      // Both failed, and each knows something the other does not.
+      throw new Error(`${modelError.message} Reading the PDF here instead did not work either: ${scanError.message}`);
+    }
+  }
+}
+
+async function paperFromScan(file, paper, topics) {
+  return paperRecordFromScan(await scanPaper(file, topics), paper, file.name);
+}
+
+// Everything the PDF itself will admit to, which is everything but the marks.
+export function paperRecordFromScan(scanned, paper, fileName) {
+  const questions = scanned.questions.map(q => {
+    const [topic, subtopic] = (q.target || '').split('|');
+    return {
+      question: q.question,
+      topic: topic || null,
+      subtopic: subtopic || null,
+      marksScored: null,
+      marksAvailable: Number(q.marksAvailable) || 0,
+    };
+  });
+
+  return {
+    id: uid(),
+    paper,
+    fileName,
+    session: scanned.session || null,
+    year: scanned.year || null,
+    uploadedAt: new Date().toISOString(),
+    questions,
+    feedback: null,
+    mistakes: [],
+    readBy: 'scan',
+    needsMarks: true,
+  };
+}
+
+async function readPaperWithModel(file, paper, topicNames, onProgress) {
   const buildPrompt = (suffix) =>
     `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests`
     + (topicNames.length ? ` (pick the closest match from this list where possible: ${topicNames.join(', ')}; otherwise give your own short topic label)` : '')
@@ -91,6 +145,7 @@ export async function extractPastPaper(file, paper, topicNames, onProgress) {
     year: identified.year || null,
     uploadedAt: new Date().toISOString(),
     questions,
+    readBy: 'model',
     feedback: feedback && typeof feedback === 'object' ? feedback : null,
     // Kept for the mistakes view, which lists only what went wrong.
     mistakes: questions

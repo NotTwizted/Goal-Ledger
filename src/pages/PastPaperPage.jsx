@@ -1,9 +1,18 @@
-import { AlertTriangle, ArrowRight, FileText } from 'lucide-react';
-import { formatDateTime } from '../lib/helpers';
+import { useState } from 'react';
+import { AlertTriangle, ArrowRight, FileText, PencilLine } from 'lucide-react';
+import { formatDateTime, recordedScore } from '../lib/helpers';
 import { getPaperCode } from '../lib/syllabus';
 import { paperFeedback } from '../lib/feedback';
+import { useLedger } from '../lib/ledger';
+import * as mutate from '../lib/mutations';
 
 export default function PastPaperPage({ subject, pastPaper }) {
+  const { subjects, updateSubjects } = useLedger();
+  // A paper read straight from the PDF arrives with every question and mark
+  // allocation on it and one gap: what was scored. Filling that in here is the
+  // only typing the app ever asks for, and only when no reader was available.
+  const [marks, setMarks] = useState({});
+  const needsMarks = Boolean(pastPaper.needsMarks);
   const mistakes = pastPaper.mistakes || [];
   // Papers recorded before questions were kept in full still have their
   // mistakes, so the report falls back to those.
@@ -17,6 +26,13 @@ export default function PastPaperPage({ subject, pastPaper }) {
       marksScored: Math.max(0, (Number(m.marksAvailable) || 0) - (Number(m.marksLost) || 0)),
     }));
   const { summary, areas, lost, score, source } = paperFeedback(pastPaper);
+
+  const enteredTotal = questions.reduce((sum, q, i) => sum + (Number(marks[i]) || 0), 0);
+  const availableTotal = questions.reduce((sum, q) => sum + (Number(q.marksAvailable) || 0), 0);
+  const anyEntered = questions.some((q, i) => marks[i] !== undefined && marks[i] !== '');
+  const saveMarks = () =>
+    updateSubjects(mutate.recordPaperMarks(subjects, subject.id, pastPaper.id,
+      questions.map((q, i) => (marks[i] === undefined ? '' : marks[i]))));
   const code = subject?.category === 'study'
     ? getPaperCode(subject.level, subject.name, subject.board)
     : null;
@@ -49,6 +65,36 @@ export default function PastPaperPage({ subject, pastPaper }) {
         </p>
       </div>
 
+      {needsMarks ? (
+        <div className="mb-5 p-4 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#b45309' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <PencilLine size={15} className="shrink-0 text-amber-700" />
+            <p className="text-sm font-medium text-stone-900">Add what you scored</p>
+          </div>
+          <p className="text-xs text-stone-600 leading-relaxed">
+            The paper itself was read here — its sitting, all {questions.length} questions, what each is
+            worth and which topic it tests. Your own marks are the one thing printed nowhere in it. Put
+            them in below and this paper counts toward every topic it touched, with feedback to match.
+          </p>
+          <div className="flex items-center gap-3 mt-3">
+            <span className="font-mono text-sm text-stone-700">
+              {enteredTotal}/{availableTotal}
+              {availableTotal > 0 && anyEntered && (
+                <span className="text-stone-400"> · {Math.round((enteredTotal / availableTotal) * 100)}%</span>
+              )}
+            </span>
+            <span className="flex-1" />
+            <button
+              data-tappable
+              onClick={saveMarks}
+              disabled={!anyEntered}
+              className="px-3 py-1.5 text-sm text-white bg-stone-800 rounded font-medium disabled:bg-stone-300"
+            >
+              Save marks
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="mb-5">
         <p className="text-[10px] font-mono tracking-wider text-stone-400 mb-1.5">FEEDBACK ON THIS PAPER</p>
 
@@ -104,6 +150,7 @@ export default function PastPaperPage({ subject, pastPaper }) {
           )}
         </div>
       </div>
+      )}
 
       <p className="text-[10px] font-mono tracking-wider text-stone-400 mb-1.5">
         EVERY QUESTION ({questions.length})
@@ -116,25 +163,42 @@ export default function PastPaperPage({ subject, pastPaper }) {
         <div className="flex flex-col gap-1.5">
           {questions.map((q, i) => {
             const available = Number(q.marksAvailable) || 0;
-            const scored = Number(q.marksScored) || 0;
-            const lost = Math.max(0, available - scored);
-            const percent = available > 0 ? Math.round((scored / available) * 100) : null;
+            const stored = recordedScore(q);
+            const scored = needsMarks ? (Number(marks[i]) || 0) : (stored === null ? 0 : stored);
+            const known = needsMarks ? (marks[i] !== undefined && marks[i] !== '') : stored !== null;
+            const lost = known ? Math.max(0, available - scored) : 0;
+            const percent = available > 0 ? Math.round((scored / available) * 100) : 0;
             return (
               <div
                 key={i}
                 className={`flex items-center gap-3 p-2.5 border rounded-lg ${
-                  lost > 0 ? 'bg-white border-stone-300' : 'bg-emerald-50 border-emerald-200'
+                  !known || lost > 0 ? 'bg-white border-stone-300' : 'bg-emerald-50 border-emerald-200'
                 }`}
               >
                 <span className="w-8 shrink-0 font-mono text-xs text-stone-500">Q{q.question || i + 1}</span>
-                <span className="shrink-0 font-mono text-xs text-stone-800 w-14">
-                  {scored}/{available}
-                </span>
+                {needsMarks ? (
+                  <span className="shrink-0 flex items-center gap-1 w-14">
+                    <input
+                      type="number"
+                      min="0"
+                      max={available}
+                      value={marks[i] === undefined ? '' : marks[i]}
+                      onChange={e => setMarks(m => ({ ...m, [i]: e.target.value }))}
+                      placeholder="—"
+                      className="w-9 border border-stone-300 rounded px-1 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
+                    />
+                    <span className="font-mono text-xs text-stone-400">/{available}</span>
+                  </span>
+                ) : (
+                  <span className="shrink-0 font-mono text-xs text-stone-800 w-14">
+                    {known ? scored : '—'}/{available}
+                  </span>
+                )}
                 {/* How much of the question was earned, at a glance down the page. */}
                 <span className="w-16 shrink-0 h-1.5 bg-stone-200 rounded-full overflow-hidden">
                   <span
                     className="block h-full rounded-full"
-                    style={{ width: `${percent ?? 0}%`, backgroundColor: lost > 0 ? '#b45309' : '#047857' }}
+                    style={{ width: `${known ? percent : 0}%`, backgroundColor: lost > 0 ? '#b45309' : '#047857' }}
                   />
                 </span>
                 <span className="flex-1 min-w-0">

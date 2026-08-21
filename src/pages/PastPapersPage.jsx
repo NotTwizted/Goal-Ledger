@@ -52,7 +52,9 @@ export default function PastPapersPage({ subject, paper }) {
                 <p className="text-sm font-medium text-stone-900 truncate">{pastPaperLabel(pp)}</p>
                 <p className="text-[10px] font-mono text-stone-400 truncate">
                   {pp.session && pp.year ? `${pp.fileName} · ` : ''}
-                  {formatDateTime(pp.uploadedAt)} · {(pp.mistakes || []).length} mistake{(pp.mistakes || []).length !== 1 ? 's' : ''}
+                  {formatDateTime(pp.uploadedAt)} · {pp.needsMarks
+                    ? 'marks not added yet'
+                    : `${(pp.mistakes || []).length} mistake${(pp.mistakes || []).length !== 1 ? 's' : ''}`}
                 </p>
               </div>
               {editing && (

@@ -30,7 +30,7 @@ export default function ReportDetailPage({ subjectId }) {
                 )}
                 <span className="flex-1" />
                 <span className="font-mono text-[10px] text-stone-400">
-                  {pp.mistakes} mistake{pp.mistakes !== 1 ? 's' : ''}
+                  {pp.needsMarks ? 'marks not added yet' : `${pp.mistakes} mistake${pp.mistakes !== 1 ? 's' : ''}`}
                 </span>
               </div>
             ))}

@@ -101,6 +101,7 @@ function papersForSubject(subject, inWeek) {
       paper: pp.paper,
       code: subject.category === 'study' ? getPaperCode(subject.level, subject.name, subject.board) : null,
       mistakes: (pp.mistakes || []).length,
+      needsMarks: Boolean(pp.needsMarks),
       at: new Date(pp.uploadedAt).getTime(),
     }))
     .sort((a, b) => b.at - a.at);

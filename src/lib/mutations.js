@@ -7,6 +7,7 @@ import {
   newUnit,
   parseMarkInput,
   normText,
+  recordedScore,
   syncTopicsWithSeed,
   uid,
   unitScores,
@@ -247,19 +248,35 @@ function tallyQuestions(questions, resolve) {
   questions.forEach(q => {
     const available = Number(q.marksAvailable) || 0;
     if (available <= 0) return;
+    // A question read off the PDF but never marked says nothing about how well
+    // the topic is known, so it is left out rather than counted as a nought.
+    const scored = recordedScore(q);
+    if (scored === null) return;
     const unitId = resolve(q);
     if (!unitId) return;
     const entry = tally.get(unitId) || { scored: 0, available: 0 };
-    entry.scored += Math.max(0, Math.min(available, Number(q.marksScored) || 0));
+    entry.scored += Math.max(0, Math.min(available, scored));
     entry.available += available;
     tally.set(unitId, entry);
   });
   return tally;
 }
 
+// A question that names a topic belongs to that topic and to no other.
+//
+// Without this, a question labelled "Quadratics" also credited Differentiation,
+// which has a subtopic called "Differentiating quadratics". The loose name
+// matching that lets "Inhibition" find "Enzyme inhibition" cannot tell those
+// two cases apart, so the question's own label settles it.
+const withOwners = (questions, topics) => questions.map(q => {
+  const named = q.topic && findTextMatch(q.topic, topics);
+  return named ? { ...q, ownerTopicId: named.id } : q;
+});
+
 // Whether a question belongs to this topic at all: by naming one of its
 // subtopics, or by naming the topic itself.
 const questionHitsTopic = (q, topic) => {
+  if (q.ownerTopicId) return q.ownerTopicId === topic.id;
   const labels = [q.subtopic, q.topic].filter(Boolean);
   if (!labels.length) return false;
   if ((topic.subtopics || []).length && labels.some(l => findTextMatch(l, topic.subtopics))) return true;
@@ -270,10 +287,12 @@ const questionHitsTopic = (q, topic) => {
   });
 };
 
-const subtopicOf = (q, topic) =>
-  ((q.subtopic && findTextMatch(q.subtopic, topic.subtopics)?.id)
+const subtopicOf = (q, topic) => {
+  if (q.ownerTopicId && q.ownerTopicId !== topic.id) return null;
+  return (q.subtopic && findTextMatch(q.subtopic, topic.subtopics)?.id)
     || (q.topic && findTextMatch(q.topic, topic.subtopics)?.id)
-    || null);
+    || null;
+};
 
 // A paper leaves two kinds of mark on a topic: one on each subtopic it tested,
 // and one on the topic as a whole, taken over every question that belonged to
@@ -303,10 +322,50 @@ function applyPaperToTopic(topic, questions, label) {
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
-    const questions = questionsOf(record);
+    const questions = withOwners(questionsOf(record), s.topics);
     const topics = s.topics.map(t =>
       ((t.paper || 'Paper 1') === paper ? applyPaperToTopic(t, questions, label) : t));
     return { ...s, topics, pastPapers: [...(s.pastPapers || []), record] };
+  });
+}
+
+const mistakesFrom = (questions) => questions
+  .filter(q => recordedScore(q) !== null && (Number(q.marksAvailable) || 0) > recordedScore(q))
+  .map(q => ({
+    question: q.question,
+    topic: q.subtopic || q.topic,
+    mistake: q.mistake || null,
+    marksLost: (Number(q.marksAvailable) || 0) - recordedScore(q),
+    marksAvailable: Number(q.marksAvailable) || 0,
+  }));
+
+// A paper read straight out of the PDF has its questions and their mark
+// allocations but not what the student scored, so nothing reached the topics
+// when it was added. Filling the marks in is the moment it does — and the flag
+// it clears is what stops the same paper counting twice.
+export function recordPaperMarks(subjects, subjectId, pastPaperId, scores) {
+  return mapSubject(subjects, subjectId, s => {
+    const record = (s.pastPapers || []).find(pp => pp.id === pastPaperId);
+    if (!record || !record.needsMarks) return s;
+
+    const questions = (record.questions || []).map((q, i) => {
+      const entered = scores[i];
+      const value = entered === '' || entered === null || entered === undefined ? null : Number(entered);
+      return { ...q, marksScored: Number.isFinite(value) ? value : null };
+    });
+    if (!questions.some(q => recordedScore(q) !== null)) return s;
+
+    const filled = { ...record, questions, needsMarks: false, mistakes: mistakesFrom(questions) };
+    const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
+
+    const owned = withOwners(questions, s.topics);
+
+    return {
+      ...s,
+      topics: s.topics.map(t =>
+        ((t.paper || 'Paper 1') === record.paper ? applyPaperToTopic(t, owned, label) : t)),
+      pastPapers: (s.pastPapers || []).map(pp => (pp.id === pastPaperId ? filled : pp)),
+    };
   });
 }
 
