@@ -122,8 +122,9 @@ function fromPartMarks(lines) {
   return questions.filter(q => q.marksAvailable > 0);
 }
 
-export async function scanPaper(file, topics = []) {
-  const lines = await readLines(file);
+// Split from the reading so the parsing can be tested against a real paper's
+// text without needing the file itself.
+export function scanLines(lines, topics = []) {
   if (!lines.length) {
     throw new Error('No text could be read from that PDF — it may be a scan of paper rather than a digital document.');
   }
@@ -146,4 +147,8 @@ export async function scanPaper(file, topics = []) {
       return { ...q, marksScored: null, target, matched: Boolean(target), matchScore: score };
     }),
   };
+}
+
+export async function scanPaper(file, topics = []) {
+  return scanLines(await readLines(file), topics);
 }

@@ -17,7 +17,9 @@ const STOPWORDS = new Set([
 // Words a question uses, against words a syllabus uses.
 const VOCABULARY = [
   { terms: ['differentiate', 'derivative', 'dy/dx', 'stationary', 'tangent', 'normal', 'rate of change'], topics: ['differentiation'] },
-  { terms: ['integrate', 'integral', 'area under', 'trapezium'], topics: ['integration'] },
+  // "dx" is what an integral looks like once a PDF has pulled the sign off it.
+  { terms: ['integrate', 'integral', 'area under', 'trapezium', 'dx', '∫'], topics: ['integration'] },
+  { terms: ['asymptote', 'vertical asymptote', 'reciprocal'], topics: ['reciprocal graphs', 'graphs and transformations'] },
   { terms: ['discriminant', 'real roots', 'equal roots', 'distinct roots'], topics: ['discriminant', 'quadratics'] },
   // "Express 2x^2 + 8x + 3 in the form a(x + b)^2 + c" is completing the
   // square without ever saying so, and it is how the question is always put.
@@ -62,24 +64,40 @@ function tokenise(text) {
 // A candidate is scored on how much of its own name the question echoes, plus
 // any vocabulary that points at it. Longer words count for more: "logarithm"
 // says more about a question than "the".
-function scoreCandidate(questionText, candidateName) {
-  const haystack = ` ${questionText.toLowerCase()} `;
-  const nameTokens = tokenise(candidateName);
+// Whole words only. Substring matching made "tan" fire on "tangent" and
+// "constant", which sent a differentiation question to trigonometry.
+const mentions = (haystack, term) => {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, 'i').test(haystack);
+};
+
+function scoreText(text, candidateName) {
+  const haystack = ` ${text.toLowerCase()} `;
   let score = 0;
 
-  nameTokens.forEach(token => {
-    if (haystack.includes(` ${token}`)) score += Math.min(4, token.length / 3);
+  tokenise(candidateName).forEach(token => {
+    if (mentions(haystack, token)) score += Math.min(4, token.length / 3);
   });
 
   const candidate = candidateName.toLowerCase();
   VOCABULARY.forEach(entry => {
     if (!entry.topics.some(t => candidate.includes(t))) return;
     entry.terms.forEach(term => {
-      if (haystack.includes(term)) score += 3;
+      // A phrase is far more telling than a single word: "form a(x" can only
+      // be completing the square, where "square" alone could be anything.
+      if (mentions(haystack, term)) score += term.includes(' ') || term.includes('(') ? 5 : 3;
     });
   });
 
   return score;
+}
+
+// A question's opening states what it is about; later parts wander. Question 5
+// of a real paper opens on completing the square and closes on inequalities,
+// and it is the opening that should decide where the marks are filed.
+function scoreCandidate(questionText, candidateName) {
+  const head = questionText.slice(0, Math.max(120, Math.round(questionText.length * 0.45)));
+  return scoreText(questionText, candidateName) + scoreText(head, candidateName) * 0.6;
 }
 
 // Returns "Topic" or "Topic|Subtopic" — the shape the scan dialog stores — or
