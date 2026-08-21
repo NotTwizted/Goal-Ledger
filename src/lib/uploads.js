@@ -89,9 +89,8 @@ async function feedbackFromQuestions(questions) {
 // their topics, everything except what the student scored. Either way a paper
 // gets added and the upload does not stop to ask anything.
 export async function extractPastPaper(file, paper, topics, onProgress) {
-  const topicNames = (topics || []).map(t => (typeof t === 'string' ? t : t.name)).filter(Boolean);
   try {
-    return await readPaperWithModel(file, paper, topicNames, onProgress);
+    return await readPaperWithModel(file, paper, topics || [], onProgress);
   } catch (modelError) {
     // A photograph has no text layer to read, so there is nothing to fall back
     // to and the reader's own error is the useful thing to say.
@@ -140,14 +139,34 @@ export function paperRecordFromScan(scanned, paper, fileName) {
   };
 }
 
-async function readPaperWithModel(file, paper, topicNames, onProgress) {
+// The syllabus as the reader should see it: each topic and the subtopics under
+// it, in the words the student's own checklist uses.
+//
+// Without this the reader was given topic names only and invented its own
+// subtopic labels — "Polynomial differentiation" where the checklist says
+// "Differentiating xⁿ", "Equation of tangent" where it says "Gradients,
+// tangents, and normals". Nothing matched, so a paper marked the topic and
+// left every subtopic under it looking untouched.
+function syllabusOutline(topics) {
+  return topics
+    .map(topic => {
+      const name = typeof topic === 'string' ? topic : topic.name;
+      const parts = (typeof topic === 'string' ? [] : topic.subtopics || []).map(st => st.name);
+      return parts.length ? `${name}: ${parts.join(' | ')}` : name;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+async function readPaperWithModel(file, paper, topics, onProgress) {
+  const outline = syllabusOutline(topics);
   // A paper split into parts has its feedback written once at the end, from all
   // of them together. Asking each part for feedback as well meant writing three
   // sets of it and throwing away three — most of the wait, for nothing.
   const buildPrompt = (suffix, single) =>
-    `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests`
-    + (topicNames.length ? ` (pick the closest match from this list where possible: ${topicNames.join(', ')}; otherwise give your own short topic label)` : '')
-    + `, a more specific subtopic where you can identify one, the marks the student scored on it as an integer, and the marks available for it as an integer. Where marks were lost, also describe the mistake in one short sentence.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}. If the session or year can't be found, use null for that field.`;
+    `This file is a corrected/marked past exam paper.${suffix} Find the exam session and year printed on it (e.g. "May/June", "October/November", "January", plus a 4-digit year) — look at headers, footers, or the front cover. Then go through EVERY question, not only the ones with marks lost — a question answered perfectly matters just as much for working out how well the student knows a topic. For each question give: the question number, the topic it tests, the subtopic within that topic`
+    + (outline ? `, the marks the student scored on it as an integer, and the marks available for it as an integer.\n\nThis is the student's syllabus. Each line is a topic, then the subtopics under it:\n\n${outline}\n\nUse these names EXACTLY as written above for both "topic" and "subtopic" — copy them character for character rather than describing the question in your own words, because they are matched by name against the student's checklist. Pick the single subtopic that fits best even when a question touches more than one. Only invent a label if a question genuinely fits nothing on the list, and say so by leaving "subtopic" null rather than writing something close.` : `, the marks the student scored on it as an integer, and the marks available for it as an integer.`)
+    + ` Where marks were lost, also describe the mistake in one short sentence.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"session": "May/June", "year": "2023", "questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}. If the session or year can't be found, use null for that field.`;
 
   const { results, partCount } = await readParts(file, buildPrompt, 8000, onProgress);
 
@@ -185,7 +204,7 @@ async function readPaperWithModel(file, paper, topicNames, onProgress) {
 export async function extractUnitTest(file, topicName, subtopicNames, onProgress) {
   const buildPrompt = (suffix, single) =>
     `This file is a corrected/marked unit test on the topic "${topicName || ''}".${suffix} Go through EVERY question on it, not only the ones with marks lost. For each question give the subtopic it tests`
-    + (subtopicNames.length ? ` (pick the closest match from this list where possible: ${subtopicNames.join(', ')}; otherwise give your own short subtopic label)` : '')
+    + (subtopicNames.length ? ` — use one of these names EXACTLY as written, copied character for character rather than described in your own words, because they are matched by name against the student's checklist: ${subtopicNames.join(' | ')}. Only invent a label if a question fits none of them` : '')
     + `, the marks the student scored on it as an integer, the marks available for it as an integer, and where marks were lost a one-sentence description of the mistake. Then list which subtopics need the most focus, ranked by how many marks were lost on them.${single ? `\n\n${FEEDBACK_BRIEF}` : ''}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"details": [{"subtopic": "Enzyme kinetics", "marksScored": 3, "marksAvailable": 5, "mistake": "Confused competitive and non-competitive inhibition"}], "focus": ["Enzyme kinetics"]${single ? `, "feedback": ${FEEDBACK_SHAPE}` : ''}}`;
 
   const { results, partCount } = await readParts(file, buildPrompt, 6000, onProgress);

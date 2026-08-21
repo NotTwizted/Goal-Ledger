@@ -333,10 +333,52 @@ const questionHitsTopic = (q, topic) => {
   });
 };
 
+// "Polynomial differentiation" and "Differentiating xⁿ" are the same thing said
+// twice, and neither contains the other, so matching on names alone loses it.
+// Comparing word stems does not: differentiation and differentiating both stem
+// to differentiat, tangent and tangents to tangent.
+// Strip the ending, then keep the first seven letters. Both halves are needed:
+// differentiating loses its "ing" and differentiation keeps its "ion", so only
+// the truncation brings them together as "differe" — while tangent and
+// tangents need the ending gone before truncating, or they part at the eighth
+// letter. Words under five letters carry too little to count.
+const stem = (word) => word.replace(/(ing|ies|es|ed|s)$/, '').slice(0, 7);
+
+const stemsOf = (name) => new Set(
+  (name || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+    .map(stem).filter(w => w.length >= 5));
+
+// Half the shorter name's words in common is enough to be the same subtopic —
+// "Equation of tangent" and "Gradients, tangents, and normals" share only
+// "tangent", and that one word is the whole of what either is about.
+const stemMatch = (label, subtopics) => {
+  const wanted = stemsOf(label);
+  if (!wanted.size) return null;
+
+  let best = null;
+  let bestScore = 0.5;
+  subtopics.forEach(st => {
+    const have = stemsOf(st.name);
+    if (!have.size) return;
+    const shared = [...wanted].filter(w => have.has(w)).length;
+    const score = shared / Math.min(wanted.size, have.size);
+    if (score >= bestScore && shared >= 1) {
+      // A tie goes to the name that shares more, not merely a larger share.
+      if (score > bestScore || !best || shared > [...wanted].filter(w => stemsOf(best.name).has(w)).length) {
+        best = st;
+        bestScore = score;
+      }
+    }
+  });
+  return best;
+};
+
 const subtopicOf = (q, topic) => {
   if (q.ownerTopicId && q.ownerTopicId !== topic.id) return null;
-  return (q.subtopic && findTextMatch(q.subtopic, topic.subtopics)?.id)
-    || (q.topic && findTextMatch(q.topic, topic.subtopics)?.id)
+  const subtopics = topic.subtopics || [];
+  return (q.subtopic && findTextMatch(q.subtopic, subtopics)?.id)
+    || (q.topic && findTextMatch(q.topic, subtopics)?.id)
+    || (q.subtopic && stemMatch(q.subtopic, subtopics)?.id)
     || null;
 };
 
