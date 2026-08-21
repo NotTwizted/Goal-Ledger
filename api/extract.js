@@ -75,12 +75,21 @@ function fromGeminiResponse(data) {
   };
 }
 
-const postGemini = (apiKey, request) =>
-  fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+const postGemini = (apiKey, request, model = GEMINI_MODEL) =>
+  fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(request),
   });
+
+// "This model is currently experiencing high demand" is Google saying come
+// back in a moment, not that anything is wrong with the request. Coming back
+// in a moment is therefore what to do, rather than handing the reader a paper
+// it could not read.
+const BUSY = new Set([429, 500, 502, 503, 504]);
+const WAITS = [2000, 6000];
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function callGemini(apiKey, body) {
   const request = toGeminiRequest(body);
@@ -89,6 +98,17 @@ async function callGemini(apiKey, body) {
   if (upstream.status === 400) {
     const plain = withoutThinkingConfig(request);
     if (plain) upstream = await postGemini(apiKey, plain);
+  }
+
+  for (let attempt = 0; attempt < WAITS.length && BUSY.has(upstream.status); attempt++) {
+    await wait(WAITS[attempt]);
+    upstream = await postGemini(apiKey, request);
+  }
+
+  // A model kept for exactly this: when the usual one stays busy, GEMINI_BUSY_MODEL
+  // is tried once before giving up. Unset, nothing changes.
+  if (BUSY.has(upstream.status) && process.env.GEMINI_BUSY_MODEL) {
+    upstream = await postGemini(apiKey, request, process.env.GEMINI_BUSY_MODEL);
   }
 
   const data = await upstream.json();

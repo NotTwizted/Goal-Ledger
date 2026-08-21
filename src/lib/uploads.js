@@ -81,6 +81,11 @@ async function feedbackFromQuestions(questions) {
   }
 }
 
+// Google says "high demand" and Anthropic says "overloaded"; both mean the
+// same thing, and neither means anything is wrong with the paper.
+export const isBusy = (message) =>
+  /high demand|overloaded|try again later|rate limit|quota|too many requests|temporarily/i.test(message || '');
+
 // Reading a paper has two routes and takes them in order, without asking.
 // The model route needs a key — held on the account, or on the server, so it is
 // asked for once at most and often never. When there is none, or the model
@@ -95,6 +100,12 @@ export async function extractPastPaper(file, paper, topics, onProgress) {
     // A photograph has no text layer to read, so there is nothing to fall back
     // to and the reader's own error is the useful thing to say.
     if (!isPdf(file)) throw modelError;
+    // Neither is a reader that is merely busy: falling back would file a paper
+    // with no marks on it, to be deleted and uploaded again, when waiting a
+    // minute is the whole of the fix.
+    if (isBusy(modelError.message)) {
+      throw new Error(`The reader is busy: ${modelError.message} Nothing has been saved — upload it again in a minute.`);
+    }
     try {
       // Why it came this way matters: no key and "the model could not read it"
       // need different things done about them, and without this the paper just
