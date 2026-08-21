@@ -215,6 +215,35 @@ export function isMastered(unit) {
   return average !== null && average >= MASTERY_THRESHOLD;
 }
 
+// What a topic may claim about itself.
+//
+// Its own marks say how it went on the questions that came up, and that is a
+// real thing worth showing — but it is not the same as knowing the topic. A
+// paper that asked one question on quadratics and got it right does not make
+// quadratics mastered while three of its five parts have never been opened.
+// So the stamp is held to what the parts underneath support:
+//
+//   every part mastered   the topic's own marks stand, mastered included
+//   some mastered         no higher than solid
+//   none mastered, some   no higher than learning
+//     started
+//   nothing started       no claim at all
+//
+// A unit with no parts under it — a subtopic, or a topic that never had any —
+// has nothing to be held to and keeps its own mastery.
+export function unitStamp(unit) {
+  const parts = unit?.subtopics || [];
+  const own = unit?.mastery || 0;
+  if (!parts.length) return own;
+
+  const mastered = parts.filter(isMastered).length;
+  if (mastered === parts.length) return own;
+
+  const started = parts.filter(p => p.status !== 'not-started' || averageScore(p) !== null).length;
+  if (!started) return 0;
+  return Math.min(own, mastered ? 3 : 2);
+}
+
 export function averageScore(unit) {
   const scores = unitScores(unit);
   if (!scores.length) return null;

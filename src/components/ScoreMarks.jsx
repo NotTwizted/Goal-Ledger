@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { MASTERY_LEVELS, averageScore, parseMarkInput, unitScores } from '../lib/helpers';
+import { MASTERY_LEVELS, averageScore, isMastered, parseMarkInput, unitScores, unitStamp } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 
 // The compact half: the average, how many marks it came from, and the stamp.
@@ -8,11 +8,19 @@ import { useLedger } from '../lib/ledger';
 export function ScoreSummary({ unit, open, onToggle }) {
   const average = averageScore(unit);
   const count = unitScores(unit).length;
+  const stamp = unitStamp(unit);
+  const parts = unit.subtopics || [];
+  const mastered = parts.filter(isMastered).length;
+  const held = parts.length > 0 && stamp < (unit.mastery || 0);
+
+  const marksNote = count ? `${count} mark${count !== 1 ? 's' : ''} recorded` : 'No marks yet';
 
   return (
     <button
       onClick={onToggle}
-      title={count ? `${count} mark${count !== 1 ? 's' : ''} recorded` : 'No marks yet'}
+      title={held
+        ? `${marksNote}. ${mastered} of ${parts.length} subtopics mastered — the whole topic is only mastered when they all are.`
+        : marksNote}
       className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded border ${
         open ? 'border-stone-400 bg-stone-100' : 'border-transparent'
       }`}
@@ -20,8 +28,8 @@ export function ScoreSummary({ unit, open, onToggle }) {
       <span className="font-mono text-xs text-stone-700 w-9 text-right">
         {average === null ? '—' : `${average}%`}
       </span>
-      <span className={`px-1 py-0.5 rounded border font-mono tracking-wider text-[8px] ${MASTERY_LEVELS[unit.mastery || 0].color}`}>
-        {MASTERY_LEVELS[unit.mastery || 0].stamp}
+      <span className={`px-1 py-0.5 rounded border font-mono tracking-wider text-[8px] ${MASTERY_LEVELS[stamp].color}`}>
+        {MASTERY_LEVELS[stamp].stamp}
       </span>
     </button>
   );
