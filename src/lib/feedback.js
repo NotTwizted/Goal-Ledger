@@ -32,16 +32,48 @@ export function paperScore(record) {
 export function lostByTopic(record) {
   const byTopic = new Map();
   questionsOf(record).forEach(q => {
-    const lost = (Number(q.marksAvailable) || 0) - (Number(q.marksScored) || 0);
-    if (lost <= 0) return;
+    const available = Number(q.marksAvailable) || 0;
+    const scored = Number(q.marksScored) || 0;
     const name = q.subtopic || q.topic || 'Unlabelled';
-    const entry = byTopic.get(name) || { topic: name, lost: 0, questions: 0, mistakes: [] };
-    entry.lost += lost;
-    entry.questions += 1;
-    if (q.mistake) entry.mistakes.push(q.mistake);
+    const entry = byTopic.get(name)
+      || { topic: name, lost: 0, available: 0, questions: [], mistakes: [] };
+    entry.available += available;
+    if (available > scored) {
+      entry.lost += available - scored;
+      if (q.question) entry.questions.push(q.question);
+      if (q.mistake) entry.mistakes.push(q.mistake);
+    }
     byTopic.set(name, entry);
   });
-  return [...byTopic.values()].sort((a, b) => b.lost - a.lost);
+  return [...byTopic.values()].filter(a => a.lost > 0).sort((a, b) => b.lost - a.lost);
+}
+
+const marks = (n) => `${n} mark${n === 1 ? '' : 's'}`;
+
+const listQuestions = (numbers) => {
+  if (!numbers.length) return '';
+  if (numbers.length === 1) return `Q${numbers[0]}`;
+  return `Q${numbers.slice(0, -1).join(', Q')} and Q${numbers[numbers.length - 1]}`;
+};
+
+// Without a model reading the script there is no telling what went wrong, but
+// how much went and where is enough to say what to do next. The advice changes
+// with how much of the topic was lost, because dropping half a topic and
+// dropping one mark call for entirely different things.
+function actionFor(area) {
+  const kept = area.available > 0 ? Math.round(((area.available - area.lost) / area.available) * 100) : 0;
+  const where = listQuestions(area.questions);
+
+  if (kept < 50) {
+    return `More than half the marks on this went. Work back through it before sitting another paper, then redo ${where}.`;
+  }
+  if (kept < 75) {
+    return `Mark ${where} against the mark scheme, then do two more questions on this to see whether it holds.`;
+  }
+  if (kept < 90) {
+    return `Close. Compare your working on ${where} line by line with the mark scheme to find the step that cost it.`;
+  }
+  return `Only ${marks(area.lost)}. Check ${where} for a slip rather than a gap — accuracy, not understanding.`;
 }
 
 export function paperFeedback(record) {
@@ -53,12 +85,12 @@ export function paperFeedback(record) {
     return { source: 'read', summary: stored.summary || '', areas: stored.areas || [], lost: areas, score };
   }
 
+  const opening = score ? `${score.scored}/${score.available} — ${score.percent}%. ` : '';
+
   if (!areas.length) {
     return {
       source: 'derived',
-      summary: score && score.scored === score.available
-        ? 'Full marks — nothing was dropped on this paper.'
-        : 'No mistakes were recorded against this paper.',
+      summary: `${opening}Nothing was dropped on this paper.`,
       areas: [],
       lost: areas,
       score,
@@ -67,21 +99,18 @@ export function paperFeedback(record) {
 
   const total = areas.reduce((sum, a) => sum + a.lost, 0);
   const worst = areas[0];
-  const share = Math.round((worst.lost / total) * 100);
 
   return {
     source: 'derived',
     summary: areas.length === 1
-      ? `All ${total} marks lost on this paper went on ${worst.topic}.`
-      : `${total} marks lost across ${areas.length} topics, ${share}% of them on ${worst.topic}.`,
-    // Without the model's reading of the script, the mistakes it recorded per
-    // question are the most specific thing available.
-    areas: areas.slice(0, 4).map(a => ({
-      topic: a.topic,
-      problem: a.mistakes.length
-        ? a.mistakes.slice(0, 3).join('; ')
-        : `${a.lost} marks lost across ${a.questions} question${a.questions !== 1 ? 's' : ''}`,
-      action: null,
+      ? `${opening}All ${marks(total)} lost went on ${worst.topic}.`
+      : `${opening}${marks(total)} lost across ${areas.length} topics, most of it — ${marks(worst.lost)} — on ${worst.topic}.`,
+    areas: areas.slice(0, 5).map(area => ({
+      topic: area.topic,
+      problem: area.mistakes.length
+        ? area.mistakes.slice(0, 3).join('; ')
+        : `Lost ${marks(area.lost)} of ${area.available} on ${listQuestions(area.questions)}.`,
+      action: actionFor(area),
     })),
     lost: areas,
     score,
