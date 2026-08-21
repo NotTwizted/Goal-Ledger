@@ -83,6 +83,22 @@ export default function PastPaperPage({ subject, pastPaper }) {
         </p>
       </div>
 
+      {/* A question with no mark read is the one the student most wants an
+          answer about, so it is named rather than left as a dash to notice. */}
+      {(pastPaper.unreadQuestions || []).length > 0 && (
+        <div className="mb-5 p-3 bg-white border border-amber-300 border-l-4 rounded-lg" style={{ borderLeftColor: '#b45309' }}>
+          <p className="text-xs text-stone-700 leading-relaxed">
+            <span className="font-medium">
+              No mark could be read for {pastPaper.unreadQuestions.length === 1 ? 'question' : 'questions'}{' '}
+              {pastPaper.unreadQuestions.join(', ')}.
+            </span>{' '}
+            It was looked at twice. Those questions count for nothing either way — they are not being
+            treated as zeros — so your topics are worked out from the rest. Turn on Edit to fill them in,
+            or upload a clearer scan of those pages.
+          </p>
+        </div>
+      )}
+
       {/* The marker's own total is the one check the paper can settle itself.
           When it still disagrees after a careful re-read, say so here rather
           than let a wrong figure pass as a right one. */}

@@ -1,4 +1,4 @@
-import { callClaudeText, callClaudeWithFile, uid } from './helpers';
+import { callClaudeText, callClaudeWithFile, recordedScore, uid } from './helpers';
 import { contentBlock, isPdf, prepareParts } from './fileprep';
 import { scanPaper } from './pdfscan';
 
@@ -173,7 +173,9 @@ function syllabusOutline(topics) {
 // read. The last sentence is the important one: a mark it cannot make out used
 // to come back as 0, which is indistinguishable from a question the student
 // actually scored nothing on, and quietly cost them marks they had earned.
-const MARKING_BRIEF = `The marks are handwritten by whoever marked it. Look for a number in the margin beside each part, or beside the total line at the end of a question; ticks and crosses in the working are not the mark. Where a mark has been crossed out and rewritten, take the final one. If a mark is missing, illegible, or you are not certain of it, give null for that question — never 0 and never a guess. 0 means the marker wrote 0.`;
+const MARKING_BRIEF = `The marks are handwritten by whoever marked it. Look for a number in the margin beside each part, or beside the total line at the end of a question; ticks and crosses in the working are not the mark. Where a mark has been crossed out and rewritten, take the final one.
+
+Read a mark for every question — that is the point of the exercise, and every question on a marked script has one somewhere. Look at the whole page: the margin, the foot of the page, beside the question's total line. Only if there is genuinely no mark to be found — the page is missing, or the writing is obscured — give null for that question. Never 0 for a mark you could not read: 0 means the marker wrote 0, and a question you could not read is not a question the student got wrong. Never describe a question you gave null for as having lost marks.`;
 
 // What the paper says about itself, read in the browser before anything is
 // sent. On a paper that prints "(Total for Question 3 is 5 marks)" this is
@@ -225,15 +227,27 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
   let questions = questionsOfResults(results);
   if (!questions.length) throw new Error('No questions could be read from that file');
 
-  // The one check the paper can settle itself. If the marker's own total does
-  // not match what was read off the page, something was misread — so it is
-  // read again, slowly, and whichever pass agrees with the total is kept.
+  // Two things send it back for a second look, and both mean the same thing:
+  // the first reading is not to be trusted as it stands.
+  //
+  // A question with no mark read is the worse of the two. A blank where a mark
+  // should be tells the student nothing and counts for nothing, and it is
+  // exactly the question they most want an answer about.
   const reported = results.map(r => r?.reportedTotal).find(t => Number.isFinite(Number(t)));
   const target = reported === undefined ? null : Number(reported);
 
-  if (target !== null && scoredTotal(questions) !== target) {
+  const unreadOf = (list) => list.filter(q => recordedScore(q) === null).map(q => String(q.question));
+  let unread = unreadOf(questions);
+  const mismatched = () => target !== null && scoredTotal(questions) !== target;
+
+  if (unread.length || mismatched()) {
+    const why = [
+      unread.length ? `no mark was read for ${unread.length === 1 ? 'question' : 'questions'} ${unread.join(', ')} — find ${unread.length === 1 ? 'it' : 'them'}` : '',
+      mismatched() ? `the marker wrote a total of ${target} but the marks read came to ${scoredTotal(questions)}, so at least one is wrong` : '',
+    ].filter(Boolean).join(', and ');
+
     const recheck = (suffix) =>
-      `This file is a corrected/marked past exam paper.${suffix} The marker wrote a total of ${target} on it, but a first reading of the individual marks came to ${scoredTotal(questions)}. Go through every question again and read each handwritten mark carefully, so that they add to ${target}. Give the question number, the topic, the subtopic, the marks scored and the marks available for each.`
+      `This file is a corrected/marked past exam paper.${suffix} It has been read once already and needs looking at again: ${why}. Go through every question and read each handwritten mark carefully${target !== null ? `, so that they add to ${target}` : ''}. Give the question number, the topic, the subtopic, the marks scored and the marks available for each.`
       + (outline ? `\n\nUse these topic and subtopic names EXACTLY as written:\n\n${outline}` : '')
       + (facts ? `\n\nThe printed mark allocations are:\n\n${facts.allocations.join('\n')}` : '')
       + `\n\n${MARKING_BRIEF}\n\nRespond with ONLY a JSON object, no other text, no markdown fences. Format: {"questions": [{"question": "3b", "topic": "Enzymes", "subtopic": "Inhibition", "marksScored": 3, "marksAvailable": 5, "mistake": "..."}]}`;
@@ -241,24 +255,38 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
     try {
       const second = await readParts(parts, recheck, 8000, onProgress, 'high').then(r => r.results);
       const reread = questionsOfResults(second);
-      // Only taken if it actually reconciles; a second wrong answer is no
-      // better than the first, and the first at least came with feedback.
-      if (reread.length && scoredTotal(reread) === target) {
-        const byNumber = new Map(reread.map(q => [String(q.question), q]));
-        questions = questions.map(q => {
-          const better = byNumber.get(String(q.question));
-          return better ? { ...q, ...better, mistake: better.mistake || q.mistake } : q;
-        });
-      }
+      const byNumber = new Map(reread.map(q => [String(q.question), q]));
+
+      // A mark found where there was none is taken on its own merits: it can
+      // only be an improvement on a blank. Changing a mark that was already
+      // read is a bigger claim, so it is taken only when the second reading
+      // reconciles with the marker's total — a second wrong answer is no
+      // better than the first.
+      const trustRevisions = reread.length > 0 && target !== null && scoredTotal(reread) === target;
+
+      questions = questions.map(q => {
+        const better = byNumber.get(String(q.question));
+        if (!better) return q;
+        const wasUnread = recordedScore(q) === null;
+        if (!wasUnread && !trustRevisions) return q;
+        if (wasUnread && recordedScore(better) === null) return q;
+        return { ...q, ...better, mistake: better.mistake || q.mistake };
+      });
+      unread = unreadOf(questions);
     } catch (e) {
-      // The first reading stands, and the mismatch is recorded below.
+      // The first reading stands, and whatever is still wrong is said below.
     }
   }
 
   const identified = results.find(r => r?.session || r?.year) || {};
-  const feedback = parts.length === 1
-    ? (results[0]?.feedback || null)
-    : await feedbackFromQuestions(questions);
+
+  // Feedback written alongside the first reading counted every unread question
+  // as a zero — "the student lost 42 marks" on a paper where 28 of them were
+  // simply not read. It is worth nothing once that is known, so the page works
+  // out its own from the marks that were.
+  const feedback = unread.length
+    ? null
+    : (parts.length === 1 ? (results[0]?.feedback || null) : await feedbackFromQuestions(questions));
 
   const settled = target === null || scoredTotal(questions) === target;
 
@@ -274,6 +302,7 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
     // Said plainly on the paper when the marks still do not add up, rather
     // than left to be noticed.
     ...(settled ? {} : { totalMismatch: { reported: target, read: scoredTotal(questions) } }),
+    ...(unread.length ? { unreadQuestions: unread } : {}),
     feedback: feedback && typeof feedback === 'object' ? feedback : null,
     // Kept for the mistakes view, which lists only what went wrong.
     mistakes: questions

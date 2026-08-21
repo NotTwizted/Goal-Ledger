@@ -8,8 +8,8 @@ const check = (label, ok, detail = '') =>
 
 const src = readFileSync(new URL('../src/lib/uploads.js', import.meta.url), 'utf8');
 
-check('the reader is told never to guess a mark',
-  /never 0 and never a guess/.test(src));
+check('the reader is told a mark it could not read is not a zero',
+  /Never 0 for a mark you could not read/.test(src));
 check('an unreadable mark comes back null, not zero',
   /give null for that question/.test(src));
 check('the printed allocations are handed over rather than re-read',
@@ -20,7 +20,7 @@ check('a mismatch triggers a second reading',
   /scoredTotal\(questions\) !== target/.test(src));
 check('which thinks harder than the first',
   /readParts\(parts, recheck, 8000, onProgress, 'high'\)/.test(src));
-check('and is only taken if it reconciles',
+check('a revision is only taken if it reconciles',
   /scoredTotal\(reread\) === target/.test(src));
 check('an unreconciled paper says so',
   /totalMismatch: \{ reported: target, read: scoredTotal\(questions\) \}/.test(src));
@@ -35,3 +35,26 @@ check('the server honours a request to think harder',
 const page = readFileSync(new URL('../src/pages/PastPaperPage.jsx', import.meta.url), 'utf8');
 check('a paper whose marks do not add up warns on its face',
   /These marks may not be right/.test(page));
+
+// A question whose mark could not be read is chased, and never counted as a
+// zero — not in the topics, and not in the feedback.
+check('an unread question sends it back for a second look',
+  /if \(unread\.length \|\| mismatched\(\)\)/.test(src));
+check('the second look is told which questions to find',
+  /no mark was read for \$\{unread\.length === 1 \? 'question' : 'questions'\}/.test(src));
+check('a mark found where there was none is taken on its own merits',
+  /if \(!wasUnread && !trustRevisions\) return q;/.test(src));
+check('but changing a mark already read needs the total to agree',
+  /const trustRevisions = reread\.length > 0 && target !== null && scoredTotal\(reread\) === target;/.test(src));
+check('a blank is never overwritten with another blank',
+  /if \(wasUnread && recordedScore\(better\) === null\) return q;/.test(src));
+check('feedback written while questions were unread is thrown away',
+  /const feedback = unread\.length\s*\?\s*null/.test(src));
+check('and the unread questions are recorded on the paper',
+  /unreadQuestions: unread/.test(src));
+check('the reader is told a blank is not a lost mark',
+  /Never describe a question you gave null for as having lost marks/.test(src));
+check('and that null is a last resort, not an expression of doubt',
+  /Only if there is genuinely no mark to be found/.test(src));
+check('the paper names the questions it could not read',
+  /No mark could be read for/.test(page));
