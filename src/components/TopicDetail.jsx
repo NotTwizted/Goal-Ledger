@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
-import { MASTERY_THRESHOLD, STATUS_META, averageScore, formatDateTime, isMastered } from '../lib/helpers';
+import { MASTERY_THRESHOLD, STATUS_META, averageScore, formatDateTime, isMastered, unitScores } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractUnitTest } from '../lib/uploads';
@@ -109,7 +109,9 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
                     onClick={() => updateSubjects(mutate.cycleSubtopicStatus(subjects, subject.id, topic.id, st.id))}
                     title={isMastered(st)
                       ? `Mastered — averaging ${averageScore(st)}%`
-                      : `${STATUS_META[st.status].label} · green at ${MASTERY_THRESHOLD}%`}
+                      : unitScores(st).length
+                        ? `Set by the marks recorded — averaging ${averageScore(st)}%, green at ${MASTERY_THRESHOLD}%. Remove them to change it.`
+                        : `${STATUS_META[st.status].label} · green at ${MASTERY_THRESHOLD}%`}
                     className={`shrink-0 ${STATUS_META[st.status].ring}`}
                   >
                     <SubIcon size={17} />

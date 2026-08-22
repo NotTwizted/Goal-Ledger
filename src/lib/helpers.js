@@ -171,11 +171,20 @@ export async function callClaudeText(promptText, maxTokens) {
 
 // A question whose mark was never read is unknown, not zero. Treating the two
 // the same is what would turn a paper nobody has marked yet into a 0%.
+//
+// A mark is also never more than the question was worth, nor less than none.
+// The reader can misread a 5 as a 9 and the box on the paper page will take
+// whatever is typed into it, and 9 out of 5 read as 180% everywhere it was
+// shown while the topics — which clamped — disagreed with the paper's own
+// header about the same paper.
 export function recordedScore(question) {
   const value = question?.marksScored;
   if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
-  return Number.isFinite(number) ? number : null;
+  if (!Number.isFinite(number)) return null;
+  const available = Number(question?.marksAvailable);
+  if (Number.isFinite(available) && available > 0) return Math.max(0, Math.min(available, number));
+  return Math.max(0, number);
 }
 
 export function findTextMatch(name, candidates) {

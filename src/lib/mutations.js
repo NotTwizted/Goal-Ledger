@@ -34,8 +34,13 @@ const mapTopic = (subject, topicId, fn) => ({
 
 // Ticking says "I have covered this" and turns the circle amber. It cannot
 // reach green — that belongs to the marks, and is applied by withMastery below.
+//
+// Nor can it clear a unit that has marks against it. Something scored is
+// something covered, and letting the circle go white beside a recorded
+// percentage was the same contradiction as a topic reading 80% with nothing
+// ticked under it. Remove the marks to undo it.
 const toggleCovered = (unit) => {
-  if (isMastered(unit)) return unit;
+  if (isMastered(unit) || unitScores(unit).length > 0) return unit;
   const covered = unit.status !== 'not-started';
   return covered
     ? { ...unit, status: 'not-started', coveredAt: null }
@@ -327,10 +332,18 @@ function tallyQuestions(questions, resolve) {
 // which has a subtopic called "Differentiating quadratics". The loose name
 // matching that lets "Inhibition" find "Enzyme inhibition" cannot tell those
 // two cases apart, so the question's own label settles it.
+// The topics given here are only those belonging to the paper being marked.
+// Passing all of them looked harmless until a subject had the same topic name
+// on two papers — Computer Science has Data representation on Paper 1 and on
+// Paper 3 — at which point a Paper 3 question was assigned to the Paper 1
+// topic, and then rejected by every topic on Paper 3 for belonging elsewhere.
+// The whole paper scored nothing, quietly.
 const withOwners = (questions, topics) => questions.map(q => {
   const named = q.topic && findTextMatch(q.topic, topics);
   return named ? { ...q, ownerTopicId: named.id } : q;
 });
+
+const topicsOfPaper = (topics, paper) => topics.filter(t => (t.paper || 'Paper 1') === paper);
 
 // Whether a question belongs to this topic at all: by naming one of its
 // subtopics, or by naming the topic itself.
@@ -437,7 +450,7 @@ const stripPaper = (topic, pastPaperId, label) => {
 export function addPastPaperRecord(subjects, subjectId, paper, record) {
   return mapSubject(subjects, subjectId, s => {
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
-    const questions = withOwners(questionsOf(record), s.topics);
+    const questions = withOwners(questionsOf(record), topicsOfPaper(s.topics, paper));
     const topics = s.topics.map(t =>
       ((t.paper || 'Paper 1') === paper ? applyPaperToTopic(t, questions, label, record.id) : t));
     return { ...s, topics, pastPapers: [...(s.pastPapers || []), record] };
@@ -484,13 +497,14 @@ function writePaperMarks(subjects, subjectId, pastPaperId, scores, revising) {
     const questions = (record.questions || []).map((q, i) => {
       const entered = scores[i];
       const value = entered === '' || entered === null || entered === undefined ? null : Number(entered);
-      return { ...q, marksScored: Number.isFinite(value) ? value : null };
+      // Written already clamped, so the record itself never holds 9 out of 5.
+      return { ...q, marksScored: Number.isFinite(value) ? recordedScore({ ...q, marksScored: value }) : null };
     });
     if (!questions.some(q => recordedScore(q) !== null)) return s;
 
     const filled = { ...record, questions, needsMarks: false, mistakes: mistakesFrom(questions) };
     const label = record.session && record.year ? `${record.session} ${record.year}` : 'Past paper';
-    const owned = withOwners(questions, s.topics);
+    const owned = withOwners(questions, topicsOfPaper(s.topics, record.paper));
 
     return {
       ...s,
