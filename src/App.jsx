@@ -341,8 +341,8 @@ export default function StudyTracker() {
   }, [loaded, user, subjects, updateSubjects]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey }),
-    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey, user]
   );
 
   const handleAuthSubmit = async (e) => {

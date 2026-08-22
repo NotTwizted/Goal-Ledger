@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileWarning, Loader2, X } from 'lucide-react';
 import { renderPdfPage } from '../lib/pdfscan';
 import { getPaperFile } from '../lib/paperfiles';
+import { useLedger } from '../lib/ledger';
 
 // The question itself, drawn from the paper it was printed in.
 //
-// Which is only possible where the paper is: the file stays on the device that
-// uploaded it, so a phone signed into the same account has the marks but not
-// the picture. That is said outright rather than shown as a broken frame.
+// The paper comes from this device if it is here and from the account's
+// storage if it is not, so a phone signed in later shows the same picture as
+// the laptop that uploaded it. A paper that is in neither place says so rather
+// than showing a broken frame.
 export default function QuestionPicture({ title, subtitle, questions, onClose }) {
+  const { userId } = useLedger();
   const [index, setIndex] = useState(0);
   const [state, setState] = useState({ status: 'loading' });
 
@@ -19,7 +22,7 @@ export default function QuestionPicture({ title, subtitle, questions, onClose })
     setState({ status: 'loading' });
 
     (async () => {
-      const file = await getPaperFile(current.paperId);
+      const file = await getPaperFile(current.paperId, userId);
       if (cancelled) return;
       if (!file) {
         setState({ status: 'missing' });
@@ -34,7 +37,7 @@ export default function QuestionPicture({ title, subtitle, questions, onClose })
     })();
 
     return () => { cancelled = true; };
-  }, [current.paperId, current.page]);
+  }, [current.paperId, current.page, userId]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -81,11 +84,11 @@ export default function QuestionPicture({ title, subtitle, questions, onClose })
           {state.status === 'missing' && (
             <div className="max-w-sm text-center">
               <FileWarning size={20} className="mx-auto text-stone-400 mb-2" />
-              <p className="text-sm text-stone-700">This paper is not on this device.</p>
+              <p className="text-sm text-stone-700">This paper could not be found.</p>
               <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                Your marks and feedback are on your account and follow you everywhere; the paper
-                itself is eight megabytes and stays where it was uploaded. Upload it here too and the
-                question will show.
+                It is neither on this device nor in your account's papers — either it was added
+                before papers were kept, or it never finished uploading. Adding it again will fix it;
+                your marks stay as they are.
               </p>
             </div>
           )}

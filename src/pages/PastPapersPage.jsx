@@ -8,7 +8,7 @@ import { navigate, paths } from '../lib/router';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function PastPapersPage({ subject, paper }) {
-  const { subjects, updateSubjects, editing } = useLedger();
+  const { subjects, updateSubjects, editing, userId } = useLedger();
   const [pendingDelete, setPendingDelete] = useState(null);
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
 
@@ -78,7 +78,7 @@ export default function PastPapersPage({ subject, paper }) {
           body="Everything this paper left goes with it — its mistakes, and the marks it put on every topic and subtopic it touched. Marks from your other papers are unaffected."
           onConfirm={() => {
             updateSubjects(mutate.deletePastPaper(subjects, subject.id, pendingDelete.id));
-            deletePaperFile(pendingDelete.id);
+            deletePaperFile(pendingDelete.id, userId);
             setPendingDelete(null);
           }}
           onCancel={() => setPendingDelete(null)}

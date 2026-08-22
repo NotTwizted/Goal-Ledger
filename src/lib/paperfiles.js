@@ -1,11 +1,19 @@
 // The uploaded paper itself, kept so a question can be looked at again.
 //
-// It stays on the device that uploaded it, in IndexedDB. The account's row
-// holds what was read off the paper — questions, marks, topics — and that is
-// small enough to travel. A paper is eight megabytes, which is not: putting it
-// in the row would make every page load carry it, and a store bucket would
-// mean another trip through a console to set up. So the marks sync and the
-// picture does not, and a device that never saw the file says so plainly.
+// Two places, and the order matters. IndexedDB on this device is written
+// first, because it is instant and works with no signal; the account's storage
+// bucket is written after, in the background, because eight megabytes is not
+// something to make anybody wait for. Reading goes the other way round — this
+// device first, then fetched once and cached if the paper was uploaded from
+// somewhere else.
+//
+// A paper is stored under the reader's own id, and the bucket's policies allow
+// nobody else near it.
+
+import { isSupabaseConfigured, supabase } from '../supabase';
+
+const BUCKET = 'papers';
+const remotePath = (userId, id) => `${userId}/${id}.pdf`;
 
 const DB_NAME = 'goal-ledger-papers';
 const STORE = 'files';
@@ -49,16 +57,12 @@ const run = (mode, fn) => open().then(db => new Promise((resolve, reject) => {
 }));
 
 // Nothing here may take an upload down with it: the marks are the point and
-// the picture is a convenience. Every failure is swallowed and reported as
-// "not on this device", which is what it amounts to.
-export async function savePaperFile(id, file) {
+// the picture is a convenience. Every failure is swallowed, and a picture that
+// cannot be found says so rather than showing a broken frame.
+async function putLocal(id, file) {
   try {
     await run('readwrite', store => store.put({
-      id,
-      blob: file,
-      name: file.name,
-      type: file.type,
-      savedAt: Date.now(),
+      id, blob: file, name: file.name, type: file.type, savedAt: Date.now(),
     }));
     await prune();
     return true;
@@ -67,20 +71,52 @@ export async function savePaperFile(id, file) {
   }
 }
 
-export async function getPaperFile(id) {
+const getLocal = (id) => run('readonly', store => store.get(id))
+  .then(row => row?.blob || null)
+  .catch(() => null);
+
+// Saved here at once, sent up afterwards. The upload is not waited for: the
+// paper is already readable on this device, and a slow line should not hold up
+// the page that is about to open.
+export async function savePaperFile(id, file, userId) {
+  const saved = await putLocal(id, file);
+  if (userId && isSupabaseConfigured) {
+    supabase.storage.from(BUCKET)
+      .upload(remotePath(userId, id), file, { upsert: true, contentType: file.type || 'application/pdf' })
+      .catch(() => {});
+  }
+  return saved;
+}
+
+export async function getPaperFile(id, userId) {
+  const local = await getLocal(id);
+  if (local) return local;
+  if (!userId || !isSupabaseConfigured) return null;
+
   try {
-    const row = await run('readonly', store => store.get(id));
-    return row?.blob || null;
+    const { data, error } = await supabase.storage.from(BUCKET).download(remotePath(userId, id));
+    if (error || !data) return null;
+    // Kept here now, so opening a second question on the same paper is instant.
+    const file = new File([data], `${id}.pdf`, { type: data.type || 'application/pdf' });
+    putLocal(id, file);
+    return file;
   } catch (e) {
     return null;
   }
 }
 
-export async function deletePaperFile(id) {
+export async function deletePaperFile(id, userId) {
   try {
     await run('readwrite', store => store.delete(id));
   } catch (e) {
     // Already gone, or never here.
+  }
+  if (userId && isSupabaseConfigured) {
+    try {
+      await supabase.storage.from(BUCKET).remove([remotePath(userId, id)]);
+    } catch (e) {
+      // The row is what matters; an orphaned file costs a little space.
+    }
   }
 }
 
@@ -88,8 +124,11 @@ async function prune() {
   try {
     const rows = await run('readonly', store => store.getAll());
     if (!Array.isArray(rows) || rows.length <= KEEP) return;
+    // Only the copy on this device. The account keeps its papers however long
+    // this browser decides to hold them, and one dropped here is fetched again
+    // the next time it is asked for.
     const oldest = rows.sort((a, b) => a.savedAt - b.savedAt).slice(0, rows.length - KEEP);
-    await Promise.all(oldest.map(row => deletePaperFile(row.id)));
+    await Promise.all(oldest.map(row => run('readwrite', store => store.delete(row.id))));
   } catch (e) {
     // Storage is full or unavailable; the newest paper is still saved.
   }

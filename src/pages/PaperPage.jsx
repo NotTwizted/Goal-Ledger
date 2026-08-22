@@ -13,7 +13,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 // Topics stay listed down the left; picking one opens it beside the list
 // rather than replacing it, so moving between topics is one click.
 export default function PaperPage({ subject, paper }) {
-  const { subjects, updateSubjects, editing } = useLedger();
+  const { subjects, updateSubjects, editing, userId } = useLedger();
   const [uploadProgress, setUploadProgress] = useState(null); // {done, total} while reading
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
@@ -49,7 +49,7 @@ export default function PaperPage({ subject, paper }) {
         next = mutate.addPastPaperRecord(next, subject.id, paper, record);
         // Kept so the questions can be looked at again. Best effort: a paper
         // that will not fit is still a paper that was read.
-        await savePaperFile(record.id, files[i]);
+        await savePaperFile(record.id, files[i], userId);
         added.push(record.id);
       } catch (e) {
         // Keep what actually went wrong — a swallowed message is why every
