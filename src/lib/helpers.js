@@ -30,8 +30,14 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// Written defensively on purpose. Everything here is fed straight from the
+// stored ledger, which has been through several shapes and is edited on more
+// than one device at a time — so a subject can arrive without its topics, or a
+// topic without its subtopics. Rendering nothing for it is a small wrong
+// answer; throwing takes the whole page down with it.
 export function flattenUnits(topics) {
-  return topics.flatMap(t => (t.subtopics && t.subtopics.length ? t.subtopics : [t]));
+  if (!Array.isArray(topics)) return [];
+  return topics.flatMap(t => (t?.subtopics?.length ? t.subtopics : [t])).filter(Boolean);
 }
 
 // Completion counts two things, half each. Working through a unit and ticking
@@ -39,6 +45,7 @@ export function flattenUnits(topics) {
 // The marks recorded against it earn the second half, filling as the average
 // climbs towards the mastery threshold and reaching 100% when it gets there.
 export function unitCompletion(unit) {
+  if (!unit) return 0;
   if (unit.status === 'done') return 1;
 
   // A goal measured against a target is simply that fraction of it: two
@@ -55,7 +62,9 @@ export function unitCompletion(unit) {
     return Math.min(1, (Number(unit.current) || 0) / target);
   }
 
-  const covered = unit.status !== 'not-started' ? 0.5 : 0;
+  // Asked as "is it covered", not "is it anything other than untouched": a
+  // unit stored without a status at all was counting as half complete.
+  const covered = unit.status === 'in-progress' || unit.status === 'done' ? 0.5 : 0;
   const average = averageScore(unit);
   const earned = average === null ? 0 : Math.min(1, average / MASTERY_THRESHOLD) * 0.5;
   return Math.min(1, covered + earned);
@@ -210,6 +219,7 @@ export function masteryFromScore(percent) {
 // A unit keeps every mark recorded against it and shows their average.
 // Ledgers written when a unit held a single number read as one mark.
 export function unitScores(unit) {
+  if (!unit) return [];
   if (Array.isArray(unit.scores)) return unit.scores;
   const legacy = unit.scorePercent;
   if (legacy === null || legacy === undefined || legacy === '') return [];
@@ -324,9 +334,10 @@ export function formatDateTime(iso) {
 }
 
 export function pastPaperLabel(pp) {
+  if (!pp) return 'Past paper';
   if (pp.session && pp.year) return `${pp.session} ${pp.year}`;
   if (pp.year) return pp.year;
-  return pp.fileName;
+  return pp.fileName || 'Past paper';
 }
 
 // A Maths subject is really its component: someone taking Mechanics thinks of
@@ -467,7 +478,7 @@ function mergeSeedTopic(existing, seedTopic, paper, legacy) {
   };
 }
 
-export function syncTopicsWithSeed(topics, seed, archivedTopics = []) {
+export function syncTopicsWithSeed(topics = [], seed = {}, archivedTopics = []) {
   // A ledger built before entries were marked cannot say which topics the
   // checklist created, so on that one pass an untouched leftover is taken to
   // be one of ours. Anything with progress recorded against it survives.

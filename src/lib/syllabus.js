@@ -1010,6 +1010,7 @@ export const SEED_DATA = (() => {
 
 
 export function getSeedData(subject) {
+  if (!subject) return null;
   const bySubject = SEED_DATA[subject.name];
   if (!bySubject) return null;
   const byLevel = bySubject[subject.level];

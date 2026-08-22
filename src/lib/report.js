@@ -17,7 +17,7 @@ function unitEvent(unit, inWeek) {
 function groupsForSubject(subject, inWeek) {
   const groups = [];
 
-  subject.topics.forEach(t => {
+  (subject.topics || []).forEach(t => {
     const hasSubtopics = t.subtopics && t.subtopics.length > 0;
 
     if (!hasSubtopics) {

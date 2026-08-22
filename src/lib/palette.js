@@ -73,6 +73,7 @@ export function nextSubjectAccent(subjects) {
 const inPalette = (hex) => SUBJECT_ACCENTS.includes(hex);
 
 export function assignMissingAccents(subjects) {
+  if (!Array.isArray(subjects)) return subjects;
   if (!subjects.some(s => !inPalette(s.accent))) return subjects;
   const counts = accentCounts(subjects);
   return subjects.map(s => {
