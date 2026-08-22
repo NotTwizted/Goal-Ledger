@@ -1,6 +1,6 @@
 import { callClaudeText, callClaudeWithFile, recordedScore, uid } from './helpers';
 import { contentBlock, isPdf, pagesOf, prepareParts } from './fileprep';
-import { scanPaper } from './pdfscan';
+import { scanPaper, sittingFromName } from './pdfscan';
 
 // A file too large to send in one request is split into parts that fit, each
 // read on its own and the questions pooled. The student sees one paper; the
@@ -124,6 +124,7 @@ async function paperFromScan(file, paper, topics) {
 
 // Everything the PDF itself will admit to, which is everything but the marks.
 export function paperRecordFromScan(scanned, paper, fileName) {
+  const named = sittingFromName(fileName);
   const questions = scanned.questions.map(q => {
     const [topic, subtopic] = (q.target || '').split('|');
     return {
@@ -139,8 +140,8 @@ export function paperRecordFromScan(scanned, paper, fileName) {
     id: uid(),
     paper,
     fileName,
-    session: scanned.session || null,
-    year: scanned.year || null,
+    session: scanned.session || named.session,
+    year: scanned.year || named.year,
     uploadedAt: new Date().toISOString(),
     questions,
     feedback: null,
@@ -303,6 +304,7 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
   }
 
   const identified = results.find(r => r?.session || r?.year) || {};
+  const named = sittingFromName(file.name);
 
   // Feedback written alongside the first reading counted every unread question
   // as a zero — "the student lost 42 marks" on a paper where 28 of them were
@@ -318,8 +320,8 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
     id: uid(),
     paper,
     fileName: file.name,
-    session: identified.session || facts?.session || null,
-    year: identified.year || facts?.year || null,
+    session: identified.session || facts?.session || named.session,
+    year: identified.year || facts?.year || named.year,
     uploadedAt: new Date().toISOString(),
     questions,
     readBy: 'model',

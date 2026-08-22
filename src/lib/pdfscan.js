@@ -21,21 +21,27 @@ const TOTAL_LINE = /Total\s+for\s+Question\s+(\d+)\s+is\s+(\d+)\s+marks?/gi;
 const PART_MARKS = /[[(](\d{1,2})[\])]\s*$/;
 
 // A line that opens a question: "1.", "2 ", "13. (a)", or just "5." where a
-// figure follows. Numbers are only accepted in sequence, which is what keeps a
-// page number at the foot of the page from opening a question of its own.
-const QUESTION_NUMBER = /^(\d{1,2})\s*[.)]?\s*(.*)$/;
+// figure follows and there is nothing else on the line.
+//
+// The last of those has to be told apart from the page number, which is also a
+// number alone on a line. Sequence is not enough to do it: an Edexcel paper
+// prints its page numbers down the foot of every page, so they run 2, 3, 4 …
+// 32 in perfect order and satisfy any check that only asks what comes next.
+// The stop does tell them apart — a question is printed "4." and a page number
+// "4" — and across the 2022 and 2025 papers every number carrying a stop is a
+// question opener and no page number carries one.
+const QUESTION_NUMBER = /^(\d{1,2})\s*([.)])?\s*(.*)$/;
 
 function makeOpenerReader() {
   let expected = 1;
-  return (text, insideQuestion) => {
+  return (text) => {
     const match = text.match(QUESTION_NUMBER);
     if (!match) return null;
     if (Number(match[1]) !== expected) return null;
-    // A bare number is only an opener between questions; mid-question it is a
-    // page number or a stray figure label.
-    if (!match[2].trim() && insideQuestion) return null;
+    const [, number, stop, rest] = match;
+    if (!rest.trim() && !stop) return null;
     expected += 1;
-    return String(match[1]);
+    return String(number);
   };
 }
 
@@ -110,7 +116,7 @@ function collectWording(lines) {
   let current = null;
 
   lines.forEach(({ text }) => {
-    const opened = readOpener(text, current !== null);
+    const opened = readOpener(text);
     if (opened) current = opened;
 
     TOTAL_LINE.lastIndex = 0;
@@ -151,7 +157,7 @@ function fromPartMarks(lines) {
   let current = null;
 
   lines.forEach(({ text, page }) => {
-    const opened = readOpener(text, current !== null);
+    const opened = readOpener(text);
     if (opened) {
       current = { question: opened, marksAvailable: 0, page };
       questions.push(current);
@@ -165,6 +171,39 @@ function fromPartMarks(lines) {
 
 // Split from the reading so the parsing can be tested against a real paper's
 // text without needing the file itself.
+// Some papers do not print their date at all — the 2022 and 2023 papers carry
+// no "Tuesday 9 January" line where the 2024 one does — so there is nothing on
+// the page to read and null is the truthful answer.
+//
+// The file it arrived in usually knows, though: "IAL_MATHS_2025_Oct_P1_QP",
+// "wma11-01-que-20230110", "...-may-2022-pdf". A month there is unambiguous in
+// a way it is not on the page, where "there may be more space than you need"
+// is printed on every cover.
+const NAME_MONTHS = [
+  { re: /(^|[^a-z])(may|jun|june|summer)([^a-z]|$)/i, session: 'May/June' },
+  { re: /(^|[^a-z])(oct|october|nov|november|autumn|winter)([^a-z]|$)/i, session: 'Oct/Nov' },
+  { re: /(^|[^a-z])(jan|january)([^a-z]|$)/i, session: 'January' },
+];
+
+const SESSION_OF_MONTH = {
+  1: 'January', 5: 'May/June', 6: 'May/June', 10: 'Oct/Nov', 11: 'Oct/Nov',
+};
+
+export function sittingFromName(fileName) {
+  const name = String(fileName || '').replace(/\.[a-z0-9]+$/i, '');
+  if (!name) return { session: null, year: null };
+
+  // A printed date, as an exam board writes it in a file name: 20230110.
+  const stamped = name.match(/(20\d{2})(0[1-9]|1[0-2])([0-2]\d|3[01])/);
+  if (stamped) {
+    return { session: SESSION_OF_MONTH[Number(stamped[2])] || null, year: stamped[1] };
+  }
+
+  const year = name.match(/(^|[^0-9])(20[0-2]\d)([^0-9]|$)/);
+  const month = NAME_MONTHS.find(entry => entry.re.test(name));
+  return { session: month ? month.session : null, year: year ? year[2] : null };
+}
+
 export function scanLines(lines, topics = []) {
   if (!lines.length) {
     throw new Error('No text could be read from that PDF — it may be a scan of paper rather than a digital document.');
