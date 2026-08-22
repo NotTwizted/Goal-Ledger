@@ -4,6 +4,7 @@ import { computeProgress } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
 import { extractPastPaper } from '../lib/uploads';
+import { savePaperFile } from '../lib/paperfiles';
 import { navigate, paths } from '../lib/router';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import TopicDetail from '../components/TopicDetail';
@@ -46,6 +47,9 @@ export default function PaperPage({ subject, paper }) {
         const record = await extractPastPaper(files[i], paper, paperTopics,
           (part, parts) => setUploadProgress({ done: i, total: files.length, part: part + 1, parts }));
         next = mutate.addPastPaperRecord(next, subject.id, paper, record);
+        // Kept so the questions can be looked at again. Best effort: a paper
+        // that will not fit is still a paper that was read.
+        await savePaperFile(record.id, files[i]);
         added.push(record.id);
       } catch (e) {
         // Keep what actually went wrong — a swallowed message is why every

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowRight, FileText, PencilLine } from 'lucide-react';
+import { AlertTriangle, ArrowRight, FileText, Image as ImageIcon, PencilLine } from 'lucide-react';
 import { formatDateTime, recordedScore } from '../lib/helpers';
 import { getPaperCode } from '../lib/syllabus';
 import { paperFeedback } from '../lib/feedback';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
+import QuestionPicture from '../components/QuestionPicture';
 
 export default function PastPaperPage({ subject, pastPaper }) {
   const { subjects, updateSubjects, editing } = useLedger();
@@ -14,6 +15,7 @@ export default function PastPaperPage({ subject, pastPaper }) {
   // handwriting, and a crossed-out 2 is a 0 as often as it is a 2. Under Edit,
   // every mark is answerable to the person who sat the paper.
   const [marks, setMarks] = useState({});
+  const [showing, setShowing] = useState(null);
   const needsMarks = Boolean(pastPaper.needsMarks);
   const correcting = !needsMarks && editing;
   const entering = needsMarks || correcting;
@@ -269,7 +271,32 @@ export default function PastPaperPage({ subject, pastPaper }) {
                   !known || lost > 0 ? 'bg-white border-stone-300' : 'bg-emerald-50 border-emerald-200'
                 }`}
               >
-                <span className="w-8 shrink-0 font-mono text-xs text-stone-500">Q{q.question || i + 1}</span>
+                {q.page ? (
+                  <button
+                    data-tappable
+                    onClick={() => setShowing({
+                      title: q.subtopic || q.topic || `Question ${q.question || i + 1}`,
+                      subtitle: q.subtopic ? q.topic : null,
+                      questions: [{
+                        paperId: pastPaper.id,
+                        paperLabel: pastPaper.session && pastPaper.year ? `${pastPaper.session} ${pastPaper.year}` : (pastPaper.year || ''),
+                        paper: pastPaper.paper,
+                        question: q.question || i + 1,
+                        page: q.page,
+                        marksScored: q.marksScored,
+                        marksAvailable: q.marksAvailable,
+                        mistake: q.mistake || null,
+                      }],
+                    })}
+                    title="See the question"
+                    className="w-8 shrink-0 flex items-center gap-0.5 font-mono text-xs text-stone-500"
+                  >
+                    Q{q.question || i + 1}
+                    <ImageIcon size={10} className="text-stone-300" />
+                  </button>
+                ) : (
+                  <span className="w-8 shrink-0 font-mono text-xs text-stone-500">Q{q.question || i + 1}</span>
+                )}
                 {entering ? (
                   <span className="shrink-0 flex items-center gap-1 w-14">
                     <input
@@ -310,6 +337,15 @@ export default function PastPaperPage({ subject, pastPaper }) {
             );
           })}
         </div>
+      )}
+
+      {showing && (
+        <QuestionPicture
+          title={showing.title}
+          subtitle={showing.subtitle}
+          questions={showing.questions}
+          onClose={() => setShowing(null)}
+        />
       )}
     </div>
   );

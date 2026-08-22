@@ -1,12 +1,22 @@
-import { CheckCircle2, CircleDot, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, CircleDot, FileText, Image as ImageIcon } from 'lucide-react';
 import { formatDateTime, formatShortDate } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import { buildWeeklyReport } from '../lib/report';
+import { questionsFor } from '../lib/questionpages';
+import QuestionPicture from '../components/QuestionPicture';
 
 export default function ReportDetailPage({ subjectId }) {
   const { subjects, weekOffset } = useLedger();
   const { weekStart, weekEnd, reports } = buildWeeklyReport(subjects, weekOffset);
   const report = reports.find(r => r.subject.id === subjectId);
+  const [showing, setShowing] = useState(null);
+
+  // A row is worth clicking only where there is a question behind it — a topic
+  // ticked off by hand was never on a paper, and offering a picture of nothing
+  // is worse than offering none.
+  const questionsForGroup = (g) =>
+    questionsFor(report?.subject, g.topicName, g.wholeTopic ? null : g.subtopicName);
 
   return (
     <div className="p-6">
@@ -48,8 +58,20 @@ export default function ReportDetailPage({ subjectId }) {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {report.groups.map(g => (
-            <div key={g.key} className="flex items-start gap-2 p-3 bg-white border border-stone-300 rounded-lg">
+          {report.groups.map(g => {
+            const questions = questionsForGroup(g);
+            return (
+            <div
+              key={g.key}
+              data-tappable={questions.length ? '' : undefined}
+              onClick={questions.length
+                ? () => setShowing({ title: g.wholeTopic ? g.topicName : g.subtopicName, subtitle: g.wholeTopic ? null : g.topicName, questions })
+                : undefined}
+              title={questions.length ? 'See the question' : undefined}
+              className={`flex items-start gap-2 p-3 bg-white border border-stone-300 rounded-lg ${
+                questions.length ? 'cursor-pointer' : ''
+              }`}
+            >
               {g.kind === 'mastered'
                 ? <CheckCircle2 size={16} className="shrink-0 text-emerald-700 mt-0.5" />
                 : <CircleDot size={16} className="shrink-0 text-amber-600 mt-0.5" />}
@@ -71,10 +93,26 @@ export default function ReportDetailPage({ subjectId }) {
                 </div>
                 {!g.wholeTopic && <p className="text-xs text-stone-500">{g.topicName}</p>}
               </div>
+              {questions.length > 0 && (
+                <span className="shrink-0 flex items-center gap-1 text-[10px] font-mono text-stone-400 mt-0.5">
+                  <ImageIcon size={12} />
+                  {questions.length > 1 ? questions.length : ''}
+                </span>
+              )}
               <span className="shrink-0 text-[10px] font-mono text-stone-400">{formatDateTime(g.latest)}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {showing && (
+        <QuestionPicture
+          title={showing.title}
+          subtitle={showing.subtitle}
+          questions={showing.questions}
+          onClose={() => setShowing(null)}
+        />
       )}
     </div>
   );

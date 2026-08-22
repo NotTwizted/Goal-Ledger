@@ -2,6 +2,7 @@ import { ChevronRight, X } from 'lucide-react';
 import { formatDateTime, pastPaperLabel } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
+import { deletePaperFile } from '../lib/paperfiles';
 import { useState } from 'react';
 import { navigate, paths } from '../lib/router';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -77,6 +78,7 @@ export default function PastPapersPage({ subject, paper }) {
           body="Everything this paper left goes with it — its mistakes, and the marks it put on every topic and subtopic it touched. Marks from your other papers are unaffected."
           onConfirm={() => {
             updateSubjects(mutate.deletePastPaper(subjects, subject.id, pendingDelete.id));
+            deletePaperFile(pendingDelete.id);
             setPendingDelete(null);
           }}
           onCancel={() => setPendingDelete(null)}

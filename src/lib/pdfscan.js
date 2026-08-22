@@ -229,6 +229,27 @@ export function scanLines(lines, topics = []) {
   };
 }
 
+// One page of a paper, drawn as a picture.
+//
+// Rendered when it is asked for rather than at upload time: a paper has
+// thirty-odd pages and almost none of them are ever looked at, so drawing them
+// all would be a slow upload in exchange for pictures nobody opens.
+export async function renderPdfPage(file, pageNumber, maxWidth = 1100) {
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const number = Math.min(Math.max(1, pageNumber), doc.numPages);
+  const page = await doc.getPage(number);
+
+  const unscaled = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({ scale: Math.min(2, maxWidth / unscaled.width) });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+  return { url: canvas.toDataURL('image/jpeg', 0.82), page: number, pages: doc.numPages };
+}
+
 export async function scanPaper(file, topics = []) {
   return scanLines(await readLines(file), topics);
 }

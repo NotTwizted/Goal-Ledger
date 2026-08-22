@@ -133,6 +133,7 @@ export function paperRecordFromScan(scanned, paper, fileName) {
       subtopic: subtopic || null,
       marksScored: null,
       marksAvailable: Number(q.marksAvailable) || 0,
+      ...(q.page ? { page: q.page } : {}),
     };
   });
 
@@ -305,6 +306,16 @@ async function readPaperWithModel(file, paper, topics, onProgress) {
 
   const identified = results.find(r => r?.session || r?.year) || {};
   const named = sittingFromName(file.name);
+
+  // Which page each question is printed on, so it can be looked at again. The
+  // reader is not asked — the paper's own total lines already say, exactly.
+  if (facts?.pages) {
+    questions = questions.map(q => {
+      const number = String(q.question || '').match(/\d+/);
+      const page = number ? facts.pages[number[0]] : null;
+      return page ? { ...q, page } : q;
+    });
+  }
 
   // Feedback written alongside the first reading counted every unread question
   // as a zero — "the student lost 42 marks" on a paper where 28 of them were
