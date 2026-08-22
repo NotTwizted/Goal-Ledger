@@ -100,7 +100,7 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
 
       {hasSubtopics && (
         <div className="flex flex-col divide-y divide-stone-100 mb-3">
-          {topic.subtopics.map(st => {
+          {(topic.subtopics || []).map(st => {
             const SubIcon = STATUS_META[st.status].icon;
             return (
               <div key={st.id} className="py-2">

@@ -18,7 +18,7 @@ export default function PaperPage({ subject, paper }) {
   const [selectedId, setSelectedId] = useState(null);
   const [pendingTopic, setPendingTopic] = useState(null);
 
-  const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === paper);
+  const paperTopics = (subject.topics || []).filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
   const accent = paperShade(subjectAccent(subject), paper);
   const pastPapers = (subject.pastPapers || []).filter(pp => pp.paper === paper);
@@ -190,7 +190,7 @@ export default function PaperPage({ subject, paper }) {
         <ConfirmDialog
           title={`Delete "${pendingTopic.name}"?`}
           body={pendingTopic.subtopics && pendingTopic.subtopics.length
-            ? `All ${pendingTopic.subtopics.length} subtopics go with it. Reloading the standard topics brings them back with the progress you have recorded.`
+            ? `All ${(pendingTopic.subtopics || []).length} subtopics go with it. Reloading the standard topics brings them back with the progress you have recorded.`
             : 'Reloading the standard topics brings it back with the progress you have recorded.'}
           onConfirm={() => {
             updateSubjects(mutate.deleteTopic(subjects, subject.id, pendingTopic.id));

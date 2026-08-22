@@ -46,6 +46,9 @@ export default function StudyTracker() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [editing, setEditing] = useState(false);
   const [readerKey, setReaderKey] = useState(getApiKey);
+  // The timestamps this device has written, so their echoes can be told apart
+  // from a genuine change made somewhere else.
+  const ownWrites = useRef(new Set());
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
@@ -122,8 +125,10 @@ export default function StudyTracker() {
             // next device gets it without being asked.
             const localKey = getApiKey();
             setReaderKey(localKey);
+            const stamp = new Date().toISOString();
+            ownWrites.current.add(stamp);
             await supabase.from('goal_ledger_data').upsert(
-              { user_id: user.id, subjects: serialiseLedger(ledger.subjects, localKey), updated_at: new Date().toISOString() },
+              { user_id: user.id, subjects: serialiseLedger(ledger.subjects, localKey), updated_at: stamp },
               { onConflict: 'user_id' },
             );
           }
@@ -170,6 +175,9 @@ export default function StudyTracker() {
         },
         payload => {
           if (cancelled || !payload.new?.subjects) return;
+          // Our own write, coming back to us. The screen is already showing it,
+          // or something newer.
+          if (ownWrites.current.delete(payload.new.updated_at)) return;
           const ledger = parseLedger(payload.new.subjects);
           setSubjects(ledger.subjects);
           if (ledger.readerKey && ledger.readerKey !== getApiKey()) {
@@ -197,7 +205,12 @@ export default function StudyTracker() {
       // none yet
     }
     const todayKey = new Date().toISOString().slice(0, 10);
-    let changed = false;
+    // Only today's matters. Keeping every day's for ever filled the browser's
+    // storage a line at a time with reminders nobody will ever look at again.
+    const before = Object.keys(notified).length;
+    notified = Object.fromEntries(
+      Object.entries(notified).filter(([key]) => key.endsWith(`:${todayKey}`)));
+    let changed = Object.keys(notified).length !== before;
 
     subjects.forEach(s => {
       if (!s.deadline) return;
@@ -274,10 +287,23 @@ export default function StudyTracker() {
     if (!user) return;
     try {
       const key = keyOverride === undefined ? getApiKey() : keyOverride;
+      // Every write comes back down the realtime channel as though somebody
+      // else had made it. Two edits in quick succession therefore raced: the
+      // echo of the first arrived while the screen was already showing the
+      // second, and put the first back until the second's own echo undid that
+      // again. Marking our own writes lets them be ignored on the way back.
+      const stamp = new Date().toISOString();
+      // Bounded, because an echo that never arrives — the channel dropped,
+      // the tab slept — would otherwise leave its stamp here for ever.
+      if (ownWrites.current.size > 50) {
+        ownWrites.current.delete(ownWrites.current.values().next().value);
+      }
+      ownWrites.current.add(stamp);
+
       const { error } = await supabase
         .from('goal_ledger_data')
         .upsert(
-          { user_id: user.id, subjects: serialiseLedger(next, key), updated_at: new Date().toISOString() },
+          { user_id: user.id, subjects: serialiseLedger(next, key), updated_at: stamp },
           { onConflict: 'user_id' }
         );
       if (error) throw error;

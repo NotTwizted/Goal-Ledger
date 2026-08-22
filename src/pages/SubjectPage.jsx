@@ -42,7 +42,7 @@ export default function SubjectPage({ subject }) {
   const accent = subjectAccent(subject);
   const code = isStudy ? getPaperCode(subject.level, subject.name, subject.board) : null;
   const specUrl = isStudy ? getSpecUrl(subject.level, subject.name, subject.board) : null;
-  const papersInUse = [...new Set(subject.topics.map(t => t.paper || 'Paper 1'))];
+  const papersInUse = [...new Set((subject.topics || []).map(t => t.paper || 'Paper 1'))];
 
   const addGoal = () => {
     const name = goalName.trim();
@@ -270,7 +270,7 @@ export default function SubjectPage({ subject }) {
       {isStudy ? (
         <div className="flex flex-col gap-3">
           {papersInUse.map(p => {
-            const paperTopics = subject.topics.filter(t => (t.paper || 'Paper 1') === p);
+            const paperTopics = (subject.topics || []).filter(t => (t.paper || 'Paper 1') === p);
             const paperProgress = computeProgress(paperTopics);
             const paperColor = paperShade(accent, p);
             return (
@@ -301,7 +301,7 @@ export default function SubjectPage({ subject }) {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {subject.topics.map(t => <GoalRow key={t.id} subject={subject} topic={t} />)}
+          {(subject.topics || []).map(t => <GoalRow key={t.id} subject={subject} topic={t} />)}
         </div>
       )}
     </div>
