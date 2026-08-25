@@ -6,17 +6,20 @@
 // actually behaves: if applying a paper stops moving mastery, the demo stops
 // showing mastery too, and the fault is visible rather than papered over.
 //
-// It lives in this browser and nowhere else. Nothing is sent to an account,
-// which is the point of it, and also why a shared demo login would have been
-// the wrong answer — everyone looking around would have been editing the same
-// row as everyone else.
+// It is held in memory for as long as the tab is open and written down
+// nowhere — not to an account, not to this browser. A refresh ends it and
+// takes everything done in it. That is what makes it safe to hand to anybody:
+// there is nothing to clean up afterwards and nothing of theirs left behind.
+//
+// It is also why a shared demo login would have been the wrong answer. An
+// account persists by definition, so everyone looking around would have been
+// editing the same row as everyone else, and whatever the last person did
+// would be what the next one found.
 
 import { getSeedData } from './syllabus';
 import * as mutate from './mutations';
 import { uid } from './helpers';
 import { nextSubjectAccent } from './palette';
-
-const STORAGE_KEY = 'study-tracker:demo';
 
 const subject = (subjects, fields) => ({
   id: uid(),
@@ -118,31 +121,12 @@ export function buildDemoLedger() {
   return subjects;
 }
 
-export function loadDemoLedger() {
+// Earlier versions kept the demo in this browser. Anyone who tried it then
+// still has that lying about, so it is cleared on the way in.
+export function clearStoredDemo() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length) return parsed;
-    }
+    localStorage.removeItem('study-tracker:demo');
   } catch (e) {
-    // Nothing usable saved; a fresh one below.
-  }
-  return buildDemoLedger();
-}
-
-export function saveDemoLedger(subjects) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(subjects));
-  } catch (e) {
-    // Private browsing, or full. The demo still works for this visit.
-  }
-}
-
-export function clearDemoLedger() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (e) {
-    // Nothing to clear.
+    // No storage to clear.
   }
 }

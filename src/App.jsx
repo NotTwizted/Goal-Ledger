@@ -28,7 +28,7 @@ import { accentWash, assignMissingAccents, categoryAccent, subjectAccent } from 
 import { syncStatusWithMarks } from './lib/mutations';
 import { parseLedger, serialiseLedger } from './lib/ledgerdata';
 import { getApiKey, setApiKey } from './lib/apikey';
-import { clearDemoLedger, loadDemoLedger, saveDemoLedger } from './lib/demo';
+import { buildDemoLedger, clearStoredDemo } from './lib/demo';
 import HeaderMenu from './components/HeaderMenu';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -128,7 +128,8 @@ export default function StudyTracker() {
 
   useEffect(() => {
     if (!demo) return;
-    setSubjects(loadDemoLedger());
+    clearStoredDemo();
+    setSubjects(buildDemoLedger());
     setLoaded(true);
   }, [demo]);
 
@@ -328,10 +329,9 @@ export default function StudyTracker() {
   }, []);
 
   const persist = useCallback(async (next, keyOverride) => {
-    if (demo) {
-      saveDemoLedger(next);
-      return;
-    }
+    // Deliberately nothing. The demo is what the screen is showing and no
+    // more, so closing the tab is all it takes to be rid of it.
+    if (demo) return;
     if (!user) return;
     try {
       const key = keyOverride === undefined ? getApiKey() : keyOverride;
@@ -411,8 +411,8 @@ export default function StudyTracker() {
   }, [loaded, user, demo, subjects, updateSubjects]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null, theme, setTheme }),
-    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey, user, theme]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null, demo, theme, setTheme }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey, user, demo, theme]
   );
 
   const handleAuthSubmit = async (e) => {
@@ -534,8 +534,8 @@ export default function StudyTracker() {
               <Eye size={16} /> Look around first
             </button>
             <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2 text-center leading-relaxed">
-              A worked example with a marked paper already read. Everything works and nothing is sent
-              anywhere — it stays in this browser.
+              A worked example with a marked paper already read. Everything works, nothing is sent
+              anywhere, and a refresh clears it — so there is nothing to undo afterwards.
             </p>
           </div>
         </div>
@@ -715,7 +715,8 @@ export default function StudyTracker() {
           <div className="mx-6 mt-4 px-3 py-2.5 flex items-center gap-2 flex-wrap border border-stone-300 dark:border-stone-700 rounded-lg">
             <Eye size={15} className="shrink-0 text-stone-500 dark:text-stone-400" />
             <p className="flex-1 min-w-0 text-sm text-stone-700 dark:text-stone-300">
-              You are looking around a worked example. Nothing here is saved to an account.
+              A worked example, kept only while this tab is open.
+              <span className="text-stone-500 dark:text-stone-400"> Refreshing clears everything you do here.</span>
             </p>
             <button
               onClick={() => { setDemo(false); setLoaded(false); setSubjects([]); navigate(paths.home(), { immediate: true }); }}
@@ -724,11 +725,11 @@ export default function StudyTracker() {
               Sign in
             </button>
             <button
-              onClick={() => { clearDemoLedger(); setSubjects(loadDemoLedger()); navigate(paths.home(), { immediate: true }); }}
+              onClick={() => { setSubjects(buildDemoLedger()); navigate(paths.home(), { immediate: true }); }}
               title="Put the example back the way it started"
               className="shrink-0 px-3 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-400"
             >
-              Reset
+              Start again
             </button>
           </div>
         )}

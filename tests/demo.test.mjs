@@ -55,3 +55,34 @@ check('maths shows real progress, not none and not all',
 const second = buildDemoLedger();
 check('two builds do not share ids',
   subjects[0].id !== second[0].id && subjects[0].topics[0].id !== second[0].topics[0].id);
+
+// One time use: nothing about the demo may be written down, or a refresh
+// would not be the end of it.
+import { readFileSync } from 'node:fs';
+
+const demoSrc = readFileSync(new URL('../src/lib/demo.js', import.meta.url), 'utf8');
+const appSrc = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+const paperSrc = readFileSync(new URL('../src/pages/PaperPage.jsx', import.meta.url), 'utf8');
+
+check('the demo never writes to storage',
+  !/localStorage\.setItem/.test(demoSrc), 'demo.js writes something');
+check('it only clears what an older version left',
+  (demoSrc.match(/localStorage\.\w+/g) || []).join(',') === 'localStorage.removeItem',
+  (demoSrc.match(/localStorage\.\w+/g) || []).join(','));
+check('saving does nothing at all while in the demo',
+  /if \(demo\) return;/.test(appSrc));
+// Inside the one function that writes, specifically — the table is named
+// earlier in the file by the code that reads it, so position alone proves
+// nothing.
+const persist = appSrc.slice(appSrc.indexOf('const persist = useCallback'),
+                            appSrc.indexOf('const updateSubjects'));
+check('the guard sits inside persist, before the upsert',
+  persist.indexOf('if (demo) return;') !== -1
+    && persist.indexOf('if (demo) return;') < persist.indexOf('upsert'),
+  `guard at ${persist.indexOf('if (demo) return;')}, upsert at ${persist.indexOf('upsert')}`);
+check('an uploaded paper leaves no file behind either',
+  /if \(!demo\) await savePaperFile/.test(paperSrc));
+check('entering the demo builds it fresh rather than loading one',
+  /clearStoredDemo\(\);\s*\n\s*setSubjects\(buildDemoLedger\(\)\);/.test(appSrc));
+check('nothing still imports the old save and load',
+  !/saveDemoLedger|loadDemoLedger/.test(appSrc + demoSrc));
