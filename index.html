@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Goal Ledger</title>
+    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)" />
+    <script>
+      // The theme is decided before the page is painted rather than in a React
+      // effect, which runs after the first paint — so a reader who chose dark
+      // was shown a white page first, every single load. Small enough to be
+      // inline: a separate file would be another request to wait for, which is
+      // the whole thing this avoids.
+      (function () {
+        try {
+          var saved = localStorage.getItem('study-tracker:theme');
+          var dark = saved === 'dark'
+            || ((saved === null || saved === 'system')
+                && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          // No storage to read; the OS preference alone decides, via the CSS.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
