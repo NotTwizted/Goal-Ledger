@@ -19,7 +19,7 @@
 // throwing, which would take the whole application down rather than one page.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
+import { BookMarked, Check, ChevronLeft, Eye, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, pastPaperLabel, subjectLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
@@ -28,6 +28,7 @@ import { accentWash, assignMissingAccents, categoryAccent, subjectAccent } from 
 import { syncStatusWithMarks } from './lib/mutations';
 import { parseLedger, serialiseLedger } from './lib/ledgerdata';
 import { getApiKey, setApiKey } from './lib/apikey';
+import { clearDemoLedger, loadDemoLedger, saveDemoLedger } from './lib/demo';
 import HeaderMenu from './components/HeaderMenu';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -59,6 +60,11 @@ export default function StudyTracker() {
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
+
+  // Looking around without an account. Everything works; nothing leaves this
+  // browser. Kept out of the auth flow entirely rather than signing in as a
+  // shared demo user, which would have every visitor editing one another's row.
+  const [demo, setDemo] = useState(false);
 
   const [subjects, setSubjects] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -121,7 +127,13 @@ export default function StudyTracker() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (!demo) return;
+    setSubjects(loadDemoLedger());
+    setLoaded(true);
+  }, [demo]);
+
+  useEffect(() => {
+    if (demo || authLoading) return;
     if (!user) {
       setSubjects([]);
       setLoaded(true);
@@ -224,7 +236,7 @@ export default function StudyTracker() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [authLoading, user]);
+  }, [demo, authLoading, user]);
 
   useEffect(() => {
     if (!loaded || !remindersOn || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
@@ -316,6 +328,10 @@ export default function StudyTracker() {
   }, []);
 
   const persist = useCallback(async (next, keyOverride) => {
+    if (demo) {
+      saveDemoLedger(next);
+      return;
+    }
     if (!user) return;
     try {
       const key = keyOverride === undefined ? getApiKey() : keyOverride;
@@ -344,7 +360,7 @@ export default function StudyTracker() {
       console.error('Could not save Goal Ledger data:', e);
       setSaveError(true);
     }
-  }, [user]);
+  }, [demo, user]);
 
   const updateSubjects = useCallback((next) => {
     setSubjects(next);
@@ -387,12 +403,12 @@ export default function StudyTracker() {
   // there is something to put right.
   const backfilled = useRef(false);
   useEffect(() => {
-    if (!loaded || !user || backfilled.current) return;
+    if (!loaded || (!user && !demo) || backfilled.current) return;
     const next = syncStatusWithMarks(assignMissingAccents(subjects));
     if (next === subjects) return;
     backfilled.current = true;
     updateSubjects(next);
-  }, [loaded, user, subjects, updateSubjects]);
+  }, [loaded, user, demo, subjects, updateSubjects]);
 
   const ledger = useMemo(
     () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null, theme, setTheme }),
@@ -461,7 +477,7 @@ export default function StudyTracker() {
     );
   }
 
-  if (!user) {
+  if (!user && !demo) {
     return (
       <div className="w-full min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white dark:bg-stone-900 border-2 border-stone-800 dark:border-stone-600 rounded-xl p-6 shadow-sm">
@@ -508,6 +524,20 @@ export default function StudyTracker() {
           >
             {authMode === 'sign-in' ? 'Create a new account' : 'Already have an account? Sign in'}
           </button>
+
+          {/* Somewhere to start without handing over an email first. */}
+          <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
+            <button
+              onClick={() => setDemo(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm rounded-lg border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300"
+            >
+              <Eye size={16} /> Look around first
+            </button>
+            <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2 text-center leading-relaxed">
+              A worked example with a marked paper already read. Everything works and nothing is sent
+              anywhere — it stays in this browser.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -673,10 +703,35 @@ export default function StudyTracker() {
             remindersOn={remindersOn}
             notifPermission={notifPermission}
             toggleReminders={toggleReminders}
-            onSignOut={() => supabase.auth.signOut()}
+            onSignOut={() => {
+              if (demo) { setDemo(false); setLoaded(false); setSubjects([]); return; }
+              supabase.auth.signOut();
+            }}
           />
           </div>
         </div>
+
+        {demo && (
+          <div className="mx-6 mt-4 px-3 py-2.5 flex items-center gap-2 flex-wrap border border-stone-300 dark:border-stone-700 rounded-lg">
+            <Eye size={15} className="shrink-0 text-stone-500 dark:text-stone-400" />
+            <p className="flex-1 min-w-0 text-sm text-stone-700 dark:text-stone-300">
+              You are looking around a worked example. Nothing here is saved to an account.
+            </p>
+            <button
+              onClick={() => { setDemo(false); setLoaded(false); setSubjects([]); navigate(paths.home(), { immediate: true }); }}
+              className="shrink-0 px-3 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-400"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={() => { clearDemoLedger(); setSubjects(loadDemoLedger()); navigate(paths.home(), { immediate: true }); }}
+              title="Put the example back the way it started"
+              className="shrink-0 px-3 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-400"
+            >
+              Reset
+            </button>
+          </div>
+        )}
 
         {saveError && (
           <div className="mx-6 mt-4 px-3 py-2 bg-rose-50 dark:bg-rose-950 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm rounded">
