@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx oxlint *)",
+      "Bash(npx vite *)",
+      "Bash(sed -i \"s|'c:/Users|'file:///c:/Users|\" \"C:/Users/Nathan/AppData/Local/Temp/claude/c--Users-Nathan-Desktop-nick-study-tracker/50e91942-48d6-4a22-ad26-9cae08e3850e/scratchpad/seedtest.mjs\")",
+      "Bash(node \"C:/Users/Nathan/AppData/Local/Temp/claude/c--Users-Nathan-Desktop-nick-study-tracker/50e91942-48d6-4a22-ad26-9cae08e3850e/scratchpad/seedtest.mjs\")",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(node -e ' *)",
+      "Bash(echo \"build exit: $?\")"
+    ]
+  }
+}

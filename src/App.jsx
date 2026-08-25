@@ -1,3 +1,20 @@
+// The only file that talks to the database.
+//
+// Everything the signed-in user owns is held here as one piece of state, and
+// every page reads it through LedgerContext rather than fetching anything of
+// its own. Pages never write to it either: they call updateSubjects with the
+// new state, and this file is what turns that into a single upsert. Keeping
+// both ends in one place is what makes the rest of the app plain functions
+// over plain objects, testable with no browser and no database.
+
+// What is on screen is worked out twice from one route.
+//
+// The URL's hash gives a route object; that decides the heading at the top of
+// the page and, separately, which page component to render. Anything the route
+// points at may have been deleted since the link was made — a subject, a paper
+// — so each case checks before rendering and shows NotFound rather than
+// throwing, which would take the whole application down rather than one page.
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookMarked, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
