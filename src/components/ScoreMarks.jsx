@@ -26,10 +26,10 @@ export function ScoreSummary({ unit, open, onToggle }) {
         : `${mastered} of ${parts.length} subtopics mastered — mastered as a whole only when they all are.`
           + (average === null ? '' : ` Its own marks average ${average}% over ${count} paper${count !== 1 ? 's' : ''}.`)}
       className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded border ${
-        open ? 'border-stone-400 bg-stone-100' : 'border-transparent'
+        open ? 'border-stone-400 dark:border-stone-600 bg-stone-100 dark:bg-stone-800' : 'border-transparent'
       }`}
     >
-      <span className="font-mono text-xs text-stone-700 w-9 text-right">
+      <span className="font-mono text-xs text-stone-700 dark:text-stone-300 w-9 text-right">
         {shown === null ? '—' : `${shown}%`}
       </span>
       <span className={`px-1 py-0.5 rounded border font-mono tracking-wider text-[8px] ${MASTERY_LEVELS[stamp].color}`}>
@@ -56,26 +56,26 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
   };
 
   return (
-    <div className="mt-2 ml-8 p-2.5 bg-stone-50 border border-stone-200 rounded">
+    <div className="mt-2 ml-8 p-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-700 rounded">
       {scores.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {scores.map(score => (
             <span
               key={score.id}
-              className={`inline-flex items-center gap-1 pl-2 py-0.5 bg-white border border-stone-300 rounded-full ${editing ? 'pr-1' : 'pr-2'}`}
+              className={`inline-flex items-center gap-1 pl-2 py-0.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-full ${editing ? 'pr-1' : 'pr-2'}`}
             >
               {score.total > 0 && (
-                <span className="font-mono text-[11px] text-stone-800">{score.scored}/{score.total}</span>
+                <span className="font-mono text-[11px] text-stone-800 dark:text-stone-200">{score.scored}/{score.total}</span>
               )}
-              <span className={`font-mono text-[11px] ${score.total > 0 ? 'text-stone-500' : 'text-stone-800'}`}>
+              <span className={`font-mono text-[11px] ${score.total > 0 ? 'text-stone-500 dark:text-stone-400' : 'text-stone-800 dark:text-stone-200'}`}>
                 {score.percent}%
               </span>
-              {score.label && <span className="text-[9px] text-stone-400">{score.label}</span>}
+              {score.label && <span className="text-[9px] text-stone-400 dark:text-stone-500">{score.label}</span>}
               {editing && (
                 <button
                   onClick={() => onRemove(score.id)}
                   title="Remove this mark"
-                  className="p-0.5 text-stone-300 hover:text-rose-600"
+                  className="p-0.5 text-stone-300 dark:text-stone-600 hover:text-rose-600"
                 >
                   <X size={11} />
                 </button>
@@ -94,20 +94,20 @@ export function ScorePanel({ unit, onAdd, onRemove }) {
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="45/60 or 75%"
           title="Enter marks out of a total, or a plain percentage"
-          className="w-32 border border-stone-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
+          className="w-32 border border-stone-300 dark:border-stone-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
         <button
           onClick={submit}
           disabled={!parsed}
-          className="px-2 py-1 bg-stone-800 text-white rounded text-xs disabled:bg-stone-300"
+          className="px-2 py-1 bg-stone-800 dark:bg-stone-700 text-white rounded text-xs disabled:bg-stone-300"
         >
           <Plus size={12} />
         </button>
         {parsed && parsed.total > 0 && (
-          <span className="font-mono text-[10px] text-stone-500">= {parsed.percent}%</span>
+          <span className="font-mono text-[10px] text-stone-500 dark:text-stone-400">= {parsed.percent}%</span>
         )}
         {!draft.trim() && scores.length > 1 && (
-          <span className="text-[10px] text-stone-400">averaged into {averageScore(unit)}%</span>
+          <span className="text-[10px] text-stone-400 dark:text-stone-500">averaged into {averageScore(unit)}%</span>
         )}
       </div>
     </div>

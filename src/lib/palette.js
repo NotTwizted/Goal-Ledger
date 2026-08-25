@@ -48,9 +48,27 @@ function freeAccent(counts) {
 // A subject's colour is stored on the subject itself, so removing one never
 // repaints the others. Anything without one yet shows the first slot until the
 // backfill below has run and given it a colour of its own.
+const storedAccent = (subject) => (
+  subject && typeof subject.accent === 'string' && subject.accent.startsWith('#')
+    ? subject.accent
+    : SUBJECT_ACCENTS[0]
+);
+
+// Every hue here was chosen deep enough to sit on paper. The same hue on a
+// dark ground reads as mud, so it is lifted toward white — mixed in oklab,
+// which lightens without letting the hue drift, so a subject is recognisably
+// the same colour in either theme.
+//
+// Read from the document at the moment it is needed rather than passed down:
+// changing the theme re-renders the whole tree, so every one of these is
+// worked out again anyway.
+const onDark = () => typeof document !== 'undefined'
+  && document.documentElement.classList.contains('dark');
+
+const forGround = (hex) => (onDark() ? `color-mix(in oklab, ${hex}, white 34%)` : hex);
+
 export function subjectAccent(subject) {
-  if (subject && typeof subject.accent === 'string' && subject.accent.startsWith('#')) return subject.accent;
-  return SUBJECT_ACCENTS[0];
+  return forGround(storedAccent(subject));
 }
 
 export { SUBJECT_ACCENTS };
@@ -58,7 +76,8 @@ export { SUBJECT_ACCENTS };
 // Where a subject's colour sits in the palette, so a list can be ordered by
 // it. Anything holding a retired hue sorts to the end rather than at random.
 export function accentOrder(subject) {
-  const index = SUBJECT_ACCENTS.indexOf(subjectAccent(subject));
+  // The stored hue, not the displayed one — sorting must not depend on theme.
+  const index = SUBJECT_ACCENTS.indexOf(storedAccent(subject));
   return index === -1 ? SUBJECT_ACCENTS.length : index;
 }
 
@@ -101,11 +120,18 @@ export function paperShade(accent, paper) {
 }
 
 export function categoryAccent(category) {
-  return CATEGORY_ACCENTS[category] || CATEGORY_ACCENTS.general;
+  return forGround(CATEGORY_ACCENTS[category] || CATEGORY_ACCENTS.general);
+}
+
+// The same hue at a set transparency, for a button's resting fill. Written as
+// a mix rather than an eight-digit hex because the accent may itself already
+// be a mix once the theme has lifted it.
+export function accentWash(hex, percent = 92) {
+  return `color-mix(in oklab, ${hex}, transparent ${percent}%)`;
 }
 
 // Progress is a magnitude and reads by length, so its bar keeps one hue.
 // Finishing is a state, and takes the reserved "good" colour to mark it.
 export function progressColor(percent, accent) {
-  return percent >= 100 ? '#047857' : accent;
+  return percent >= 100 ? forGround('#047857') : accent;
 }

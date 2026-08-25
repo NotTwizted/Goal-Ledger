@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarCheck, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
+import { BookMarked, Check, ChevronLeft, GraduationCap, Target } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 import { daysUntil, pastPaperLabel, subjectLabel } from './lib/helpers';
 import { LedgerContext } from './lib/ledger';
 import { navigate, paths, useRoute } from './lib/router';
-import { assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
+import { accentWash, assignMissingAccents, categoryAccent, subjectAccent } from './lib/palette';
 import { syncStatusWithMarks } from './lib/mutations';
 import { parseLedger, serialiseLedger } from './lib/ledgerdata';
 import { getApiKey, setApiKey } from './lib/apikey';
@@ -20,10 +20,10 @@ import ReportDetailPage from './pages/ReportDetailPage';
 function NotFound({ message }) {
   return (
     <div className="p-6 text-center py-20">
-      <p className="text-stone-400 font-serif text-sm mb-3">{message}</p>
+      <p className="text-stone-400 dark:text-stone-500 font-serif text-sm mb-3">{message}</p>
       <button
         onClick={() => navigate(paths.home())}
-        className="px-3 py-1.5 border border-stone-300 rounded text-sm text-stone-600"
+        className="px-3 py-1.5 border border-stone-300 dark:border-stone-700 rounded text-sm text-stone-600 dark:text-stone-400"
       >
         Back to the ledger
       </button>
@@ -46,6 +46,18 @@ export default function StudyTracker() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [editing, setEditing] = useState(false);
   const [readerKey, setReaderKey] = useState(getApiKey);
+
+  // 'system' follows the operating system and is the default; 'light' and
+  // 'dark' override it. Kept per device rather than on the account, because a
+  // phone in bed and a laptop at a desk want different answers.
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('study-tracker:theme');
+      return saved === 'light' || saved === 'dark' ? saved : 'system';
+    } catch (e) {
+      return 'system';
+    }
+  });
   // The timestamps this device has written, so their echoes can be told apart
   // from a genuine change made somewhere else.
   const ownWrites = useRef(new Set());
@@ -327,6 +339,28 @@ export default function StudyTracker() {
     persist(subjects, key || '');
   }, [persist, subjects]);
 
+  // One class on <html> is what every dark: rule in the app hangs off. While
+  // the choice is 'system' the operating system decides, and changing it there
+  // changes the page without a reload.
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      const dark = theme === 'dark' || (theme === 'system' && media.matches);
+      document.documentElement.classList.toggle('dark', dark);
+    };
+
+    apply();
+    try {
+      localStorage.setItem('study-tracker:theme', theme);
+    } catch (e) {
+      // Private browsing; the choice simply will not outlive the tab.
+    }
+
+    if (theme !== 'system') return undefined;
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [theme]);
+
   // Two things older ledgers are missing: a colour per subject, from before
   // colours existed, and a status on subtopics a paper had marked but left
   // looking untouched. Both are put right once per session, and only when
@@ -341,8 +375,8 @@ export default function StudyTracker() {
   }, [loaded, user, subjects, updateSubjects]);
 
   const ledger = useMemo(
-    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null }),
-    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey, user]
+    () => ({ subjects, updateSubjects, weekOffset, setWeekOffset, editing, setEditing, notifPermission, readerKey, saveReaderKey, userId: user?.id || null, theme, setTheme }),
+    [subjects, updateSubjects, weekOffset, editing, notifPermission, readerKey, saveReaderKey, user, theme]
   );
 
   const handleAuthSubmit = async (e) => {
@@ -375,31 +409,31 @@ export default function StudyTracker() {
 
   if (authLoading) {
     return (
-      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-8">
-        <div className="text-stone-500 font-serif">Loading Goal Ledger…</div>
+      <div className="w-full min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center p-8">
+        <div className="text-stone-500 dark:text-stone-400 font-serif">Loading Goal Ledger…</div>
       </div>
     );
   }
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-6 shadow-sm">
+      <div className="w-full min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white dark:bg-stone-900 border-2 border-stone-800 dark:border-stone-600 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap size={24} className="text-stone-800" />
-            <h1 className="font-serif text-2xl text-stone-900">Goal Ledger</h1>
+            <GraduationCap size={24} className="text-stone-800 dark:text-stone-200" />
+            <h1 className="font-serif text-2xl text-stone-900 dark:text-stone-100">Goal Ledger</h1>
           </div>
-          <p className="text-sm text-stone-600 mb-3">
+          <p className="text-sm text-stone-600 dark:text-stone-400 mb-3">
             This build has no Supabase credentials, so it can't sign you in or load your ledger.
           </p>
-          <p className="text-sm text-stone-600 mb-2">
+          <p className="text-sm text-stone-600 dark:text-stone-400 mb-2">
             Set these two environment variables where the site is built, then redeploy:
           </p>
-          <ul className="text-xs font-mono text-stone-700 bg-stone-100 rounded p-3 mb-3 space-y-1">
+          <ul className="text-xs font-mono text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 rounded p-3 mb-3 space-y-1">
             <li>VITE_SUPABASE_URL</li>
             <li>VITE_SUPABASE_PUBLISHABLE_KEY</li>
           </ul>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             They're in your local <span className="font-mono">.env.local</span>, which is deliberately kept out of the repository.
           </p>
         </div>
@@ -409,13 +443,13 @@ export default function StudyTracker() {
 
   if (!user) {
     return (
-      <div className="w-full min-h-screen bg-stone-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-6 shadow-sm">
+      <div className="w-full min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white dark:bg-stone-900 border-2 border-stone-800 dark:border-stone-600 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap size={24} className="text-stone-800" />
-            <h1 className="font-serif text-2xl text-stone-900">Goal Ledger</h1>
+            <GraduationCap size={24} className="text-stone-800 dark:text-stone-200" />
+            <h1 className="font-serif text-2xl text-stone-900 dark:text-stone-100">Goal Ledger</h1>
           </div>
-          <p className="text-sm text-stone-500 mb-6">Sign in to keep your goals and study progress synced across your devices.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Sign in to keep your goals and study progress synced across your devices.</p>
 
           <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3">
             <input
@@ -424,7 +458,7 @@ export default function StudyTracker() {
               onChange={e => setAuthEmail(e.target.value)}
               placeholder="Email"
               autoComplete="email"
-              className="border border-stone-300 rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
             />
             <input
               type="password"
@@ -432,13 +466,13 @@ export default function StudyTracker() {
               onChange={e => setAuthPassword(e.target.value)}
               placeholder="Password"
               autoComplete={authMode === 'sign-in' ? 'current-password' : 'new-password'}
-              className="border border-stone-300 rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
             />
 
-            {authError && <p className="text-xs text-rose-600">{authError}</p>}
-            {authMessage && <p className="text-xs text-emerald-700">{authMessage}</p>}
+            {authError && <p className="text-xs text-rose-600 dark:text-rose-400">{authError}</p>}
+            {authMessage && <p className="text-xs text-emerald-700 dark:text-emerald-400">{authMessage}</p>}
 
-            <button type="submit" className="px-3 py-2.5 bg-stone-800 text-white rounded text-sm font-medium">
+            <button type="submit" className="px-3 py-2.5 bg-stone-800 dark:bg-stone-700 text-white rounded text-sm font-medium">
               {authMode === 'sign-in' ? 'Sign in' : 'Create account'}
             </button>
           </form>
@@ -450,7 +484,7 @@ export default function StudyTracker() {
               setAuthError('');
               setAuthMessage('');
             }}
-            className="w-full mt-3 px-3 py-2 text-sm text-stone-600 rounded"
+            className="w-full mt-3 px-3 py-2 text-sm text-stone-600 dark:text-stone-400 rounded"
           >
             {authMode === 'sign-in' ? 'Create a new account' : 'Already have an account? Sign in'}
           </button>
@@ -460,7 +494,7 @@ export default function StudyTracker() {
   }
 
   if (!loaded) {
-    return <div className="w-full p-8 text-stone-500 font-serif">Loading your subjects…</div>;
+    return <div className="w-full p-8 text-stone-500 dark:text-stone-400 font-serif">Loading your subjects…</div>;
   }
 
   const routeSubject = route.subjectId ? subjects.find(s => s.id === route.subjectId) : null;
@@ -471,10 +505,14 @@ export default function StudyTracker() {
   const categoryIcon = (category, subject) => {
     const style = subject ? { color: subjectAccent(subject) } : undefined;
     return category === 'study'
-      ? <GraduationCap size={22} className={subject ? '' : 'text-indigo-800'} style={style} />
-      : <Target size={22} className={subject ? '' : 'text-amber-700'} style={style} />;
+      ? <GraduationCap size={22} className={subject ? '' : 'text-indigo-800 dark:text-indigo-300'} style={style} />
+      : <Target size={22} className={subject ? '' : 'text-amber-700 dark:text-amber-400'} style={style} />;
   };
 
+  // The bar holds the logo and the controls and nothing else. What page you
+  // are on is said by the heading in the middle of the page below, the way the
+  // weekly report already did it — so the top left is the same on every screen
+  // and always goes home.
   const header = (() => {
     switch (route.name) {
       case 'dashboard':
@@ -482,31 +520,48 @@ export default function StudyTracker() {
           back: paths.home(),
           icon: categoryIcon(route.category),
           title: route.category === 'study' ? 'Studies' : 'General goals',
+          sub: null,
         };
       case 'subject':
         return {
           back: routeSubject ? paths.category(routeSubject.category) : paths.home(),
           icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : null,
           title: routeSubject ? subjectLabel(routeSubject) : 'Subject',
+          sub: routeSubject && routeSubject.category === 'study'
+            ? [routeSubject.level, routeSubject.board].filter(Boolean).join(' · ')
+            : null,
         };
       case 'paper':
-        return { back: paths.subject(route.subjectId), icon: null, title: route.paper };
+        return {
+          back: paths.subject(route.subjectId),
+          icon: null,
+          title: route.paper,
+          sub: routeSubject ? subjectLabel(routeSubject) : null,
+        };
       case 'pastPapers':
-        return { back: paths.paper(route.subjectId, route.paper), icon: null, title: `${route.paper} past papers` };
+        return {
+          back: paths.paper(route.subjectId, route.paper),
+          icon: null,
+          title: 'Past papers',
+          sub: [routeSubject ? subjectLabel(routeSubject) : null, route.paper].filter(Boolean).join(' · '),
+        };
       case 'pastPaper':
         return {
           back: paths.pastPapers(route.subjectId, route.paper),
           icon: null,
           title: routePastPaper ? pastPaperLabel(routePastPaper) : 'Past paper',
+          sub: [routeSubject ? subjectLabel(routeSubject) : null, route.paper].filter(Boolean).join(' · '),
         };
       case 'reportDetail':
         return {
           back: paths.home(),
-          icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : <CalendarCheck size={22} className="text-stone-800" />,
+          icon: routeSubject ? categoryIcon(routeSubject.category, routeSubject) : null,
           title: routeSubject ? routeSubject.name : 'Weekly report',
+          sub: 'This week',
         };
       default:
-        return { back: null, icon: <GraduationCap size={22} className="text-stone-800" />, title: 'Goal ledger' };
+        // Home writes its own heading, with the week it is showing.
+        return { back: null, icon: null, title: null, sub: null };
     }
   })();
 
@@ -539,13 +594,14 @@ export default function StudyTracker() {
 
   return (
     <LedgerContext.Provider value={ledger}>
-      <div className="w-full bg-stone-50 min-h-screen">
-        <div className="border-b-2 border-stone-800 px-6 py-5 flex items-center justify-between">
+      <div className="w-full bg-stone-50 dark:bg-stone-950 min-h-screen">
+        <div className="border-b-2 border-stone-800 dark:border-stone-600 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {header.back && (
               <button
                 onClick={() => navigate(header.back)}
-                className="mr-2 p-1.5 rounded text-stone-700"
+                title="Back"
+                className="mr-1 p-1.5 rounded text-stone-700 dark:text-stone-300"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -555,8 +611,8 @@ export default function StudyTracker() {
               title="Back to the weekly report"
               className="flex items-center gap-2 rounded px-1.5 py-1 -mx-1.5"
             >
-              {header.icon}
-              <h1 className="font-serif text-xl text-stone-900 tracking-tight">{header.title}</h1>
+              <BookMarked size={22} className="text-stone-800 dark:text-stone-200" />
+              <h1 className="font-serif text-xl text-stone-900 dark:text-stone-100 tracking-tight">Goal ledger</h1>
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -575,7 +631,7 @@ export default function StudyTracker() {
                 style={{
                   color: active ? '#ffffff' : hue,
                   borderColor: hue,
-                  backgroundColor: active ? hue : `${hue}12`,
+                  backgroundColor: active ? hue : accentWash(hue),
                 }}
               >
                 <Icon size={17} /> <span className="hidden sm:inline">{label}</span>
@@ -586,7 +642,7 @@ export default function StudyTracker() {
             <button
               onClick={() => setEditing(false)}
               title="Lock the ledger"
-              className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border font-medium bg-stone-800 text-white border-stone-800"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border font-medium bg-stone-800 dark:bg-stone-700 text-white border-stone-800 dark:border-stone-600"
             >
               <Check size={17} /> <span className="hidden sm:inline">Done</span>
             </button>
@@ -603,12 +659,25 @@ export default function StudyTracker() {
         </div>
 
         {saveError && (
-          <div className="mx-6 mt-4 px-3 py-2 bg-rose-50 border border-rose-300 text-rose-800 text-sm rounded">
+          <div className="mx-6 mt-4 px-3 py-2 bg-rose-50 dark:bg-rose-950 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm rounded">
             Couldn't save your changes. They may not persist — try again in a moment.
           </div>
         )}
 
         <div key={JSON.stringify(route)} className="page-enter">
+          {header.title && (
+            <div className="pt-7 pb-1 px-6 flex flex-col items-center text-center">
+              <div className="flex items-center gap-2">
+                {header.icon}
+                <h2 className="font-serif text-2xl text-stone-900 dark:text-stone-100 tracking-tight">
+                  {header.title}
+                </h2>
+              </div>
+              {header.sub && (
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">{header.sub}</p>
+              )}
+            </div>
+          )}
           {page}
         </div>
       </div>

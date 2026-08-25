@@ -62,15 +62,15 @@ export default function ApiKeyDialog({ onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-6" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-white border-2 border-stone-800 rounded-xl p-5 shadow-lg"
+        className="w-full max-w-md bg-white dark:bg-stone-900 border-2 border-stone-800 dark:border-stone-600 rounded-xl p-5 shadow-lg"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-2">
-          <KeyRound size={18} className="shrink-0 text-stone-700" />
-          <h2 className="font-serif text-lg text-stone-900">Reader key</h2>
+          <KeyRound size={18} className="shrink-0 text-stone-700 dark:text-stone-300" />
+          <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">Reader key</h2>
         </div>
 
-        <p className="text-sm text-stone-600 mb-3">
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-3">
           Reading a marked paper sends it to a model, which needs a key. Paste either kind — the app works
           out which it is.
         </p>
@@ -80,21 +80,21 @@ export default function ApiKeyDialog({ onClose }) {
             href="https://aistudio.google.com/apikey"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-baseline gap-2 p-2.5 border border-stone-300 rounded"
+            className="flex items-baseline gap-2 p-2.5 border border-stone-300 dark:border-stone-700 rounded"
           >
-            <span className="font-medium text-stone-800">Google AI Studio</span>
-            <span className="px-1.5 py-0.5 rounded border border-emerald-500 text-emerald-700 text-[10px] font-mono">FREE</span>
-            <span className="flex-1 text-stone-500 text-right underline">aistudio.google.com</span>
+            <span className="font-medium text-stone-800 dark:text-stone-200">Google AI Studio</span>
+            <span className="px-1.5 py-0.5 rounded border border-emerald-500 dark:border-emerald-600 text-emerald-700 dark:text-emerald-400 text-[10px] font-mono">FREE</span>
+            <span className="flex-1 text-stone-500 dark:text-stone-400 text-right underline">aistudio.google.com</span>
           </a>
           <a
             href="https://console.anthropic.com/settings/keys"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-baseline gap-2 p-2.5 border border-stone-300 rounded"
+            className="flex items-baseline gap-2 p-2.5 border border-stone-300 dark:border-stone-700 rounded"
           >
-            <span className="font-medium text-stone-800">Anthropic Console</span>
-            <span className="px-1.5 py-0.5 rounded border border-stone-300 text-stone-500 text-[10px] font-mono">PAID</span>
-            <span className="flex-1 text-stone-500 text-right underline">console.anthropic.com</span>
+            <span className="font-medium text-stone-800 dark:text-stone-200">Anthropic Console</span>
+            <span className="px-1.5 py-0.5 rounded border border-stone-300 dark:border-stone-700 text-stone-500 dark:text-stone-400 text-[10px] font-mono">PAID</span>
+            <span className="flex-1 text-stone-500 dark:text-stone-400 text-right underline">console.anthropic.com</span>
           </a>
         </div>
 
@@ -105,35 +105,35 @@ export default function ApiKeyDialog({ onClose }) {
           onChange={e => { setValue(e.target.value); setTouched(true); setResult(null); }}
           onKeyDown={e => e.key === 'Enter' && valid && save()}
           placeholder="AQ.… or AIza… or sk-ant-…"
-          className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
+          className="w-full border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
 
         {provider && (
-          <p className="text-xs text-emerald-700 mt-1.5">
+          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1.5">
             Recognised as a {PROVIDERS[provider].name} key ({PROVIDERS[provider].note}).
           </p>
         )}
         {touched && !valid && !provider && (
-          <p className="text-xs text-rose-600 mt-1.5">
+          <p className="text-xs text-rose-600 dark:text-rose-400 mt-1.5">
             Not a key either provider issues — Google's begin AQ. or AIza, Anthropic's sk-ant-.
           </p>
         )}
 
-        <p className="text-xs text-stone-500 mt-3">
+        <p className="text-xs text-stone-500 dark:text-stone-400 mt-3">
           Saved to your account, so it works on every device you sign in on — add it once and never
           again. It is never built into the site, so nobody else visiting it can use your key. Clear the
           box and save to remove it everywhere.
         </p>
 
         {provider === 'gemini' && (
-          <p className="text-xs text-stone-500 mt-2">
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-2">
             On Google's free tier, uploads may be used to improve their models, and there is a limit of a
             few requests a minute.
           </p>
         )}
 
         {result && (
-          <p className={`flex items-start gap-1.5 text-xs mt-3 leading-relaxed ${result.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+          <p className={`flex items-start gap-1.5 text-xs mt-3 leading-relaxed ${result.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
             {result.ok
               ? <CheckCircle2 size={13} className="shrink-0 mt-0.5" />
               : <XCircle size={13} className="shrink-0 mt-0.5" />}
@@ -146,19 +146,19 @@ export default function ApiKeyDialog({ onClose }) {
             data-tappable
             onClick={test}
             disabled={!trimmed || !valid || testing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-stone-700 border border-stone-300 rounded disabled:text-stone-300 disabled:border-stone-200"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700 rounded disabled:text-stone-300 disabled:border-stone-200"
           >
             {testing && <Loader2 size={13} className="animate-spin" />}
             {testing ? 'Testing…' : 'Test it'}
           </button>
           <span className="flex-1" />
-          <button onClick={onClose} className="px-3 py-1.5 text-sm text-stone-600 border border-stone-300 rounded">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 border border-stone-300 dark:border-stone-700 rounded">
             Cancel
           </button>
           <button
             onClick={save}
             disabled={!valid}
-            className="px-3 py-1.5 text-sm text-white bg-stone-800 rounded font-medium disabled:bg-stone-300"
+            className="px-3 py-1.5 text-sm text-white bg-stone-800 dark:bg-stone-700 rounded font-medium disabled:bg-stone-300"
           >
             {trimmed ? 'Save key' : 'Remove key'}
           </button>

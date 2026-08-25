@@ -24,11 +24,11 @@ export default function PastPapersPage({ subject, paper }) {
   return (
     <div className="p-6">
       {focusAreas.length > 0 && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
-          <p className="text-xs font-medium text-amber-900 mb-1.5">Focus on these topics</p>
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-lg">
+          <p className="text-xs font-medium text-amber-900 dark:text-amber-200 mb-1.5">Focus on these topics</p>
           <div className="flex flex-wrap gap-1.5">
             {focusAreas.map(([topic, count]) => (
-              <span key={topic} className="px-2 py-0.5 rounded border border-amber-400 bg-white text-amber-800 text-[11px] font-mono">
+              <span key={topic} className="px-2 py-0.5 rounded border border-amber-400 dark:border-amber-700 bg-white dark:bg-stone-900 text-amber-800 dark:text-amber-300 text-[11px] font-mono">
                 {topic} × {count}
               </span>
             ))}
@@ -37,7 +37,7 @@ export default function PastPapersPage({ subject, paper }) {
       )}
 
       {pastPapers.length === 0 ? (
-        <div className="text-center py-16 text-stone-400 font-serif text-sm">
+        <div className="text-center py-16 text-stone-400 dark:text-stone-500 font-serif text-sm">
           No past papers uploaded for {paper} yet.
         </div>
       ) : (
@@ -47,11 +47,11 @@ export default function PastPapersPage({ subject, paper }) {
               key={pp.id}
               data-tappable
               onClick={() => navigate(paths.pastPaper(subject.id, paper, pp.id))}
-              className="cursor-pointer flex items-center gap-3 p-3 bg-white border border-stone-300 rounded-lg transition-colors"
+              className="cursor-pointer flex items-center gap-3 p-3 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-stone-900 truncate">{pastPaperLabel(pp)}</p>
-                <p className="text-[10px] font-mono text-stone-400 truncate">
+                <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{pastPaperLabel(pp)}</p>
+                <p className="text-[10px] font-mono text-stone-400 dark:text-stone-500 truncate">
                   {pp.session && pp.year ? `${pp.fileName} · ` : ''}
                   {formatDateTime(pp.uploadedAt)} · {pp.needsMarks
                     ? 'marks not added yet'
@@ -61,12 +61,12 @@ export default function PastPapersPage({ subject, paper }) {
               {editing && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setPendingDelete(pp); }}
-                  className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
+                  className="shrink-0 p-1 text-stone-300 dark:text-stone-600 hover:text-rose-600"
                 >
                   <X size={14} />
                 </button>
               )}
-              <ChevronRight size={16} className="shrink-0 text-stone-400" />
+              <ChevronRight size={16} className="shrink-0 text-stone-400 dark:text-stone-500" />
             </div>
           ))}
         </div>

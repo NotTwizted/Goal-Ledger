@@ -16,18 +16,18 @@ export default function ConfirmDialog({ title, body, confirmLabel = 'Delete', on
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm bg-white border-2 border-stone-800 rounded-xl p-5 shadow-lg"
+        className="w-full max-w-sm bg-white dark:bg-stone-900 border-2 border-stone-800 dark:border-stone-600 rounded-xl p-5 shadow-lg"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start gap-2 mb-2">
-          <AlertTriangle size={18} className="shrink-0 text-rose-700 mt-0.5" />
-          <h2 className="font-serif text-lg text-stone-900 leading-tight">{title}</h2>
+          <AlertTriangle size={18} className="shrink-0 text-rose-700 dark:text-rose-400 mt-0.5" />
+          <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100 leading-tight">{title}</h2>
         </div>
-        {body && <p className="text-sm text-stone-600 mb-4 ml-7">{body}</p>}
+        {body && <p className="text-sm text-stone-600 dark:text-stone-400 mb-4 ml-7">{body}</p>}
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-stone-600 border border-stone-300 rounded"
+            className="px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 border border-stone-300 dark:border-stone-700 rounded"
           >
             Cancel
           </button>

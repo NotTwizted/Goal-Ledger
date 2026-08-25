@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* Dark mode is a class on <html> rather than the OS preference alone, because
+   the preference is only the default here — a reader can override it, and that
+   choice has to beat the operating system in both directions. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The page behind the app. Without this the browser paints white outside the
+   app's own background — visible when a short page does not fill the screen,
+   and as a flash on load. color-scheme also darkens scrollbars and form
+   controls, which no class can reach. */
+html { background: #fafaf9; }
+
+html.dark {
+  background: #0c0a09;
+  color-scheme: dark;
+}
+
 /* Press feedback. A quick tap can release before :active has been on screen
    long enough to notice, so the dip is a keyframe animation driven from a
    click listener instead — it always plays in full. Buttons and file-upload

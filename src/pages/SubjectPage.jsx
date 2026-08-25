@@ -84,10 +84,10 @@ export default function SubjectPage({ subject }) {
   return (
     <div className="p-6">
       {subject.spec && (
-        <p className="text-sm text-stone-500 mb-1 -mt-2">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mb-1 -mt-2">
           {subject.spec}
           {code && (
-            <span className="ml-1.5 font-mono text-xs text-stone-400 border border-stone-300 rounded px-1 py-0.5">
+            <span className="ml-1.5 font-mono text-xs text-stone-400 dark:text-stone-500 border border-stone-300 dark:border-stone-700 rounded px-1 py-0.5">
               {code}
             </span>
           )}
@@ -96,7 +96,7 @@ export default function SubjectPage({ subject }) {
               href={specUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1.5 inline-flex items-center gap-1 text-stone-600 underline text-xs"
+              className="ml-1.5 inline-flex items-center gap-1 text-stone-600 dark:text-stone-400 underline text-xs"
             >
               <FileText size={12} /> View specification
             </a>
@@ -105,12 +105,12 @@ export default function SubjectPage({ subject }) {
       )}
 
       {(subject.target || subject.deadline) && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-sm text-stone-600">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-sm text-stone-600 dark:text-stone-400">
           {subject.target && <span>Target: {subject.target}</span>}
           {subject.deadline && (() => {
             const d = daysUntil(subject.deadline);
             return (
-              <span className={d < 0 ? 'text-rose-600' : d <= 7 ? 'text-amber-700' : ''}>
+              <span className={d < 0 ? 'text-rose-600 dark:text-rose-400' : d <= 7 ? 'text-amber-700 dark:text-amber-400' : ''}>
                 {d < 0 ? `${Math.abs(d)} days overdue` : d === 0 ? 'Due today' : `${d} days left`}
               </span>
             );
@@ -118,12 +118,12 @@ export default function SubjectPage({ subject }) {
         </div>
       )}
 
-      <div className="mb-5 p-3 bg-white border border-stone-300 rounded-lg">
-        <div className="flex justify-between text-xs text-stone-500 mb-1">
+      <div className="mb-5 p-3 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg">
+        <div className="flex justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
           <span>Completion</span>
           <span className="font-mono">{progress}%</span>
         </div>
-        <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
+        <div className="h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
@@ -136,14 +136,14 @@ export default function SubjectPage({ subject }) {
           <button
             onClick={loadStandardTopics}
             className={`w-full flex items-center justify-center gap-2 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
-              justLoadedTopics ? 'border-emerald-700 text-emerald-700 is-confirmed' : 'border-indigo-800 text-indigo-800'
+              justLoadedTopics ? 'border-emerald-700 dark:border-emerald-500 text-emerald-700 dark:text-emerald-400 is-confirmed' : 'border-indigo-800 dark:border-indigo-500 text-indigo-800 dark:text-indigo-300'
             }`}
           >
             {justLoadedTopics
               ? <><CheckCircle2 size={16} /> Topics loaded</>
               : <><ClipboardList size={16} /> Load standard topics</>}
           </button>
-          <p className="text-[11px] text-stone-400 mt-1.5 text-center">
+          <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1.5 text-center">
             Restores every standard topic and subtopic in syllabus order — anything you deleted comes back in its original place, and the progress you have already recorded is kept.
           </p>
         </div>
@@ -155,12 +155,12 @@ export default function SubjectPage({ subject }) {
             value={goalName}
             onChange={e => setGoalName(e.target.value)}
             placeholder={goalPlaceholder(subject)}
-            className="flex-1 border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="flex-1 border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
             onKeyDown={e => e.key === 'Enter' && addGoal()}
           />
           <button
             onClick={addGoal}
-            className="px-3 py-2 bg-stone-800 text-white rounded text-sm flex items-center gap-1"
+            className="px-3 py-2 bg-stone-800 dark:bg-stone-700 text-white rounded text-sm flex items-center gap-1"
           >
             <Plus size={16} /> Add
           </button>
@@ -168,7 +168,7 @@ export default function SubjectPage({ subject }) {
       )}
 
       {editing && isStudy && (
-        <p className="text-xs text-stone-400 mb-2">
+        <p className="text-xs text-stone-400 dark:text-stone-500 mb-2">
           Paste a list or upload the specification below to build the checklist — add subtopics directly inside each topic's card.
         </p>
       )}
@@ -177,7 +177,7 @@ export default function SubjectPage({ subject }) {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <button
           onClick={() => setShowImport(v => !v)}
-          className="flex items-center gap-1.5 text-xs text-stone-500"
+          className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400"
         >
           <ClipboardList size={14} /> {showImport ? 'Hide import' : 'Paste a list instead'}
         </button>
@@ -185,7 +185,7 @@ export default function SubjectPage({ subject }) {
           { accept: 'image/*', Icon: ImageIcon, label: isStudy ? 'Upload a photo of the specification' : 'Upload a photo of your goals' },
           { accept: 'application/pdf', Icon: FileText, label: isStudy ? 'Upload a PDF of the specification' : 'Upload a PDF of your goals' },
         ].map(({ accept, Icon, label }) => (
-          <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer">
+          <label key={accept} data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 cursor-pointer">
             {fileLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
             {fileLoading ? 'Reading file…' : label}
             <input
@@ -203,25 +203,25 @@ export default function SubjectPage({ subject }) {
         ))}
       </div>
       )}
-      {fileError && <p className="text-xs text-rose-600 -mt-3 mb-4">{fileError}</p>}
+      {fileError && <p className="text-xs text-rose-600 dark:text-rose-400 -mt-3 mb-4">{fileError}</p>}
 
       {editing && showImport && (
-        <div className="mb-5 p-4 border-2 border-dashed border-stone-400 rounded-lg bg-white">
-          <p className="text-xs text-stone-500 mb-2">
+        <div className="mb-5 p-4 border-2 border-dashed border-stone-400 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900">
+          <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">
             {isStudy
               ? 'Paste your topic list, one per line. Indent a line with a couple of spaces to make it a subtopic of the line above — bullets, numbering, and checkboxes are stripped automatically.'
               : "Paste a list of goals, one per line — bullets, numbering, or checkboxes are fine, they'll be stripped automatically."}
           </p>
           {isStudy && (
             <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-              <span className="text-xs text-stone-500">Adding to:</span>
+              <span className="text-xs text-stone-500 dark:text-stone-400">Adding to:</span>
               {PAPERS.map(p => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setImportPaper(p)}
                   className={`px-2.5 py-1 rounded border text-xs transition-colors ${
-                    importPaper === p ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 '
+                    importPaper === p ? 'bg-stone-800 dark:bg-stone-700 text-white border-stone-800 dark:border-stone-600' : 'text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 '
                   }`}
                 >
                   {p}
@@ -236,10 +236,10 @@ export default function SubjectPage({ subject }) {
             placeholder={isStudy
               ? 'e.g.\nCell structure\n  Prokaryotic vs eukaryotic cells\n  Organelles\nEnzyme action'
               : goalImportPlaceholder(subject)}
-            className="w-full border border-stone-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="w-full border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-stone-400 font-mono">
+            <span className="text-xs text-stone-400 dark:text-stone-500 font-mono">
               {isStudy
                 ? `${parseTopicsHierarchical(importText).length} main topic${parseTopicsHierarchical(importText).length !== 1 ? 's' : ''} detected`
                 : `${parseTopicsFromText(importText).length} goal${parseTopicsFromText(importText).length !== 1 ? 's' : ''} detected`}
@@ -247,11 +247,11 @@ export default function SubjectPage({ subject }) {
             <div className="flex gap-2">
               <button
                 onClick={() => { setShowImport(false); setImportText(''); }}
-                className="px-3 py-1.5 text-stone-600 text-sm rounded"
+                className="px-3 py-1.5 text-stone-600 dark:text-stone-400 text-sm rounded"
               >
                 Cancel
               </button>
-              <button onClick={runImport} className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm">
+              <button onClick={runImport} className="px-3 py-1.5 bg-stone-800 dark:bg-stone-700 text-white rounded text-sm">
                 Add to checklist
               </button>
             </div>
@@ -260,7 +260,7 @@ export default function SubjectPage({ subject }) {
       )}
 
       {subject.topics.length === 0 && (
-        <div className="text-center py-12 text-stone-400 font-serif text-sm">
+        <div className="text-center py-12 text-stone-400 dark:text-stone-500 font-serif text-sm">
           {editing
             ? (isStudy ? 'No topics yet. Add the first one above.' : 'No goals yet. Add the first one above.')
             : `Nothing here yet — press Edit to add ${isStudy ? 'topics' : 'goals'}.`}
@@ -277,19 +277,19 @@ export default function SubjectPage({ subject }) {
               <button
                 key={p}
                 onClick={() => navigate(paths.paper(subject.id, p))}
-                className="text-left bg-white border border-stone-300 border-l-4 rounded-xl p-4 transition-colors"
+                className="text-left bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 border-l-4 rounded-xl p-4 transition-colors"
                 style={{ borderLeftColor: paperColor }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-serif text-base text-stone-800">{p}</h3>
+                  <h3 className="font-serif text-base text-stone-800 dark:text-stone-200">{p}</h3>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-stone-500">
+                    <span className="font-mono text-xs text-stone-500 dark:text-stone-400">
                       {paperProgress}% · {paperTopics.length} item{paperTopics.length !== 1 ? 's' : ''}
                     </span>
-                    <ChevronRight size={16} className="text-stone-400" />
+                    <ChevronRight size={16} className="text-stone-400 dark:text-stone-500" />
                   </div>
                 </div>
-                <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${paperProgress}%`, backgroundColor: progressColor(paperProgress, paperColor) }}

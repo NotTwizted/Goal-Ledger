@@ -78,12 +78,12 @@ export default function PaperPage({ subject, paper }) {
 
   return (
     <div className="p-6">
-      <div className="mb-4 p-3 bg-white border border-stone-300 border-l-4 rounded-lg" style={{ borderLeftColor: accent }}>
-        <div className="flex justify-between text-xs text-stone-500 mb-1">
+      <div className="mb-4 p-3 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 border-l-4 rounded-lg" style={{ borderLeftColor: accent }}>
+        <div className="flex justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
           <span>{paper} completion</span>
           <span className="font-mono">{progress}%</span>
         </div>
-        <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
+        <div className="h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
@@ -94,18 +94,18 @@ export default function PaperPage({ subject, paper }) {
       <div className="mb-6 flex items-center gap-2">
         <button
           onClick={() => navigate(paths.pastPapers(subject.id, paper))}
-          className="flex-1 flex items-center justify-between p-3 bg-white border border-stone-300 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-between p-3 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg transition-colors"
         >
-          <span className="text-sm text-stone-700">
-            Past papers {pastPapers.length > 0 && <span className="text-stone-400">· {pastPapers.length} uploaded</span>}
+          <span className="text-sm text-stone-700 dark:text-stone-300">
+            Past papers {pastPapers.length > 0 && <span className="text-stone-400 dark:text-stone-500">· {pastPapers.length} uploaded</span>}
           </span>
-          <ChevronRight size={16} className="text-stone-400" />
+          <ChevronRight size={16} className="text-stone-400 dark:text-stone-500" />
         </button>
         {editing && (
           <label
             data-tappable
             title="Upload the marked paper — it is read for you, marks and all"
-            className="shrink-0 flex items-center gap-1.5 text-sm text-white bg-stone-800 cursor-pointer rounded-lg px-4 py-3 font-medium"
+            className="shrink-0 flex items-center gap-1.5 text-sm text-white bg-stone-800 dark:bg-stone-700 cursor-pointer rounded-lg px-4 py-3 font-medium"
           >
             {uploadProgress ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
             <span className="hidden sm:inline">
@@ -131,15 +131,15 @@ export default function PaperPage({ subject, paper }) {
           </label>
         )}
       </div>
-      {error && <p className="text-xs text-rose-600 -mt-4 mb-4">{error}</p>}
+      {error && <p className="text-xs text-rose-600 dark:text-rose-400 -mt-4 mb-4">{error}</p>}
 
       {paperTopics.length === 0 ? (
-        <div className="text-center py-12 text-stone-400 font-serif text-sm">
+        <div className="text-center py-12 text-stone-400 dark:text-stone-500 font-serif text-sm">
           No topics under {paper} yet.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-[minmax(200px,300px)_1fr] gap-4 items-start">
-          <nav className="bg-white border border-stone-300 rounded-lg overflow-hidden md:sticky md:top-4">
+          <nav className="bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg overflow-hidden md:sticky md:top-4">
             {paperTopics.map(t => {
               const percent = topicPercent(t);
               const isSelected = selected && t.id === selected.id;
@@ -152,23 +152,23 @@ export default function PaperPage({ subject, paper }) {
                   data-tappable
                   onClick={() => setSelectedId(t.id)}
                   className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 border-l-4 border-b border-b-stone-100 last:border-b-0 ${
-                    isSelected ? 'bg-stone-100' : 'bg-white'
+                    isSelected ? 'bg-stone-100 dark:bg-stone-800' : 'bg-white dark:bg-stone-900'
                   }`}
                   style={{ borderLeftColor: isSelected ? accent : 'transparent' }}
                 >
                   {mastered
-                    ? <CheckCircle2 size={14} className="shrink-0 text-emerald-700" />
+                    ? <CheckCircle2 size={14} className="shrink-0 text-emerald-700 dark:text-emerald-400" />
                     : <span className="shrink-0 w-3.5 h-3.5 rounded-full border-2" style={{ borderColor: accent }} />}
-                  <span className={`flex-1 text-sm leading-snug ${isSelected ? 'text-stone-900 font-medium' : 'text-stone-700'}`}>
+                  <span className={`flex-1 text-sm leading-snug ${isSelected ? 'text-stone-900 dark:text-stone-100 font-medium' : 'text-stone-700 dark:text-stone-300'}`}>
                     {t.name}
                   </span>
-                  <span className="shrink-0 font-mono text-[10px] text-stone-400">
+                  <span className="shrink-0 font-mono text-[10px] text-stone-400 dark:text-stone-500">
                     {t.subtopics && t.subtopics.length ? `${doneCount}/${t.subtopics.length}` : `${percent}%`}
                   </span>
                   {editing && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPendingTopic(t); }}
-                      className="shrink-0 p-0.5 text-stone-300 hover:text-rose-600"
+                      className="shrink-0 p-0.5 text-stone-300 dark:text-stone-600 hover:text-rose-600"
                     >
                       <X size={13} />
                     </button>

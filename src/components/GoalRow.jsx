@@ -50,7 +50,7 @@ export default function GoalRow({ subject, topic }) {
     if (target === null && !editing) return null;
 
     return (
-      <div className="flex items-center gap-2 flex-wrap text-[11px] text-stone-500">
+      <div className="flex items-center gap-2 flex-wrap text-[11px] text-stone-500 dark:text-stone-400">
         <label className="flex items-center gap-1.5">
           <span>Now</span>
           <input
@@ -58,7 +58,7 @@ export default function GoalRow({ subject, topic }) {
             min="0"
             value={unit.current === null || unit.current === undefined ? '' : unit.current}
             onChange={e => set(subtopicId, 'current', e.target.value)}
-            className="w-16 border border-stone-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="w-16 border border-stone-300 dark:border-stone-700 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
         </label>
 
@@ -73,7 +73,7 @@ export default function GoalRow({ subject, topic }) {
               placeholder={named ? String(target) : ''}
               value={unit.target === null || unit.target === undefined ? '' : unit.target}
               onChange={e => set(subtopicId, 'target', e.target.value)}
-              className="w-16 border border-stone-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
+              className="w-16 border border-stone-300 dark:border-stone-700 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
             />
             {unitName && <span>{unitName}</span>}
           </label>
@@ -99,22 +99,22 @@ export default function GoalRow({ subject, topic }) {
   };
 
   return (
-    <div className="p-3 bg-white border border-stone-300 rounded-lg">
+    <div className="p-3 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg">
       <div className="flex items-center gap-3">
         {circle(topic, null)}
-        <span className={`flex-1 text-sm ${topic.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-800'}`}>
+        <span className={`flex-1 text-sm ${topic.status === 'done' ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-800 dark:text-stone-200'}`}>
           {topic.name}
         </span>
         {hasSteps && (
-          <span className="shrink-0 font-mono text-[10px] text-stone-400">
+          <span className="shrink-0 font-mono text-[10px] text-stone-400 dark:text-stone-500">
             {steps.filter(s => s.status === 'done').length}/{steps.length}
           </span>
         )}
         {donePercent !== null && (
-          <span className="shrink-0 font-mono text-xs text-stone-500">{donePercent}%</span>
+          <span className="shrink-0 font-mono text-xs text-stone-500 dark:text-stone-400">{donePercent}%</span>
         )}
         {editing && (
-          <button onClick={() => setConfirming({ kind: 'goal' })} className="p-1 text-stone-300 hover:text-rose-600">
+          <button onClick={() => setConfirming({ kind: 'goal' })} className="p-1 text-stone-300 dark:text-stone-600 hover:text-rose-600">
             <X size={16} />
           </button>
         )}
@@ -124,21 +124,21 @@ export default function GoalRow({ subject, topic }) {
       {!hasSteps && <div className="mt-2 ml-8">{progressFields(topic, null)}</div>}
 
       {hasSteps && (
-        <div className="mt-2 ml-8 flex flex-col divide-y divide-stone-100">
+        <div className="mt-2 ml-8 flex flex-col divide-y divide-stone-100 dark:divide-stone-800">
           {steps.map(step => (
             <div key={step.id} className="py-2 first:pt-0">
               <div className="flex items-center gap-2">
                 {circle(step, step.id)}
-                <span className={`flex-1 text-sm ${step.status === 'done' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>
+                <span className={`flex-1 text-sm ${step.status === 'done' ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-700 dark:text-stone-300'}`}>
                   {step.name}
                 </span>
                 {percentOf(step) !== null && (
-                  <span className="shrink-0 font-mono text-[11px] text-stone-400">{percentOf(step)}%</span>
+                  <span className="shrink-0 font-mono text-[11px] text-stone-400 dark:text-stone-500">{percentOf(step)}%</span>
                 )}
                 {editing && (
                   <button
                     onClick={() => setConfirming({ kind: 'step', step })}
-                    className="shrink-0 p-1 text-stone-300 hover:text-rose-600"
+                    className="shrink-0 p-1 text-stone-300 dark:text-stone-600 hover:text-rose-600"
                   >
                     <X size={14} />
                   </button>
@@ -151,7 +151,7 @@ export default function GoalRow({ subject, topic }) {
       )}
 
       {donePercent !== null && (
-        <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden mt-2 ml-8">
+        <div className="h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden mt-2 ml-8">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${donePercent}%`, backgroundColor: donePercent >= 100 ? '#047857' : '#b45309' }}
@@ -165,10 +165,10 @@ export default function GoalRow({ subject, topic }) {
             value={draft}
             onChange={e => setDraft(e.target.value)}
             placeholder="Add a step — e.g. do 4 pullups"
-            className="flex-1 min-w-0 border border-stone-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="flex-1 min-w-0 border border-stone-300 dark:border-stone-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-stone-400"
             onKeyDown={e => e.key === 'Enter' && addStep()}
           />
-          <button onClick={addStep} className="shrink-0 px-2.5 py-1.5 bg-stone-800 text-white rounded text-xs">
+          <button onClick={addStep} className="shrink-0 px-2.5 py-1.5 bg-stone-800 dark:bg-stone-700 text-white rounded text-xs">
             <Plus size={13} />
           </button>
         </div>

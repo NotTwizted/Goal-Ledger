@@ -106,13 +106,13 @@ export default function DashboardPage({ category }) {
       <div className="flex items-center justify-between mb-4">
         {sortedSubjects.length > 1 ? (
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-stone-500">Sort:</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400">Sort:</span>
             {SORT_OPTIONS.map(opt => (
               <button
                 key={opt.key}
                 onClick={() => setSortOrder(opt.key)}
                 className={`px-2.5 py-1 rounded border text-xs transition-colors ${
-                  sortOrder === opt.key ? 'bg-stone-800 text-white border-stone-800' : 'text-stone-600 border-stone-300 '
+                  sortOrder === opt.key ? 'bg-stone-800 dark:bg-stone-700 text-white border-stone-800 dark:border-stone-600' : 'text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 '
                 }`}
               >
                 {opt.label}
@@ -124,7 +124,7 @@ export default function DashboardPage({ category }) {
         {editing && (
           <button
             onClick={() => setShowAdd(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 text-stone-50 rounded text-sm font-medium"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded text-sm font-medium"
           >
             <Plus size={16} /> {isStudyCategory ? 'Subject' : 'Goal'}
           </button>
@@ -132,7 +132,7 @@ export default function DashboardPage({ category }) {
       </div>
 
       {editing && showAdd && (
-        <div className="mb-6 p-4 border-2 border-dashed border-stone-400 rounded-lg bg-white">
+        <div className="mb-6 p-4 border-2 border-dashed border-stone-400 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900">
           <div className="flex flex-col gap-2">
             {!isStudyCategory && (
               <input
@@ -140,7 +140,7 @@ export default function DashboardPage({ category }) {
                 value={goalName}
                 onChange={e => setGoalName(e.target.value)}
                 placeholder="Goal name (e.g. Deadlift 100kg, Learn Spanish)"
-                className="border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
               />
             )}
 
@@ -156,7 +156,7 @@ export default function DashboardPage({ category }) {
                     setBoardCustom('');
                     setComponents([]);
                   }}
-                  className="border border-stone-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-400"
                 >
                   <option value="">Level…</option>
                   {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
@@ -166,7 +166,7 @@ export default function DashboardPage({ category }) {
                   value={subject}
                   onChange={e => { setSubject(e.target.value); setBoard(''); setBoardCustom(''); setComponents([]); }}
                   disabled={!level}
-                  className="border border-stone-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-stone-100 disabled:text-stone-400"
+                  className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-stone-100 disabled:text-stone-400"
                 >
                   <option value="">Subject…</option>
                   {level && Object.keys(SUBJECT_BOARDS[level]).map(s => <option key={s} value={s}>{s}</option>)}
@@ -178,7 +178,7 @@ export default function DashboardPage({ category }) {
                     value={subjectCustom}
                     onChange={e => setSubjectCustom(e.target.value)}
                     placeholder="Type the subject name"
-                    className="border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                    className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
                   />
                 )}
 
@@ -186,7 +186,7 @@ export default function DashboardPage({ category }) {
                   value={board}
                   onChange={e => setBoard(e.target.value)}
                   disabled={!subject}
-                  className="border border-stone-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-stone-100 disabled:text-stone-400"
+                  className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-stone-100 disabled:text-stone-400"
                 >
                   <option value="">Exam board…</option>
                   {level && subject && subject !== OTHER && (SUBJECT_BOARDS[level][subject] || []).map(b => (
@@ -200,13 +200,13 @@ export default function DashboardPage({ category }) {
                     value={boardCustom}
                     onChange={e => setBoardCustom(e.target.value)}
                     placeholder="Type the exam board"
-                    className="border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                    className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
                   />
                 )}
 
                 {mathsNeedsComponent && (
                   <div>
-                    <p className="text-xs text-stone-500 mb-1">Components — pick at least one (Pure, Mechanics, or Statistics)</p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Components — pick at least one (Pure, Mechanics, or Statistics)</p>
                     <div className="flex flex-wrap gap-1.5">
                       {MATHS_COMPONENTS.map(comp => (
                         <button
@@ -215,8 +215,8 @@ export default function DashboardPage({ category }) {
                           onClick={() => toggleComponent(comp)}
                           className={`px-2.5 py-1 rounded border text-xs transition-colors ${
                             components.includes(comp)
-                              ? 'bg-stone-800 text-white border-stone-800'
-                              : 'text-stone-600 border-stone-300 '
+                              ? 'bg-stone-800 dark:bg-stone-700 text-white border-stone-800 dark:border-stone-600'
+                              : 'text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 '
                           }`}
                         >
                           {comp}
@@ -224,7 +224,7 @@ export default function DashboardPage({ category }) {
                       ))}
                     </div>
                     {components.length === 0 && (
-                      <p className="text-xs text-rose-600 mt-1">Select at least one component to continue.</p>
+                      <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">Select at least one component to continue.</p>
                     )}
                   </div>
                 )}
@@ -235,16 +235,16 @@ export default function DashboardPage({ category }) {
               value={target}
               onChange={e => setTarget(e.target.value)}
               placeholder={isStudyCategory ? 'Target grade (optional) — e.g. Grade A, 90%' : 'Target (optional) — e.g. Bench 100kg, CEFR B2'}
-              className="border border-stone-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
             />
 
             <div className="flex items-center gap-2">
-              <label className="text-xs text-stone-500 shrink-0">Deadline (optional)</label>
+              <label className="text-xs text-stone-500 dark:text-stone-400 shrink-0">Deadline (optional)</label>
               <input
                 type="date"
                 value={deadline}
                 onChange={e => setDeadline(e.target.value)}
-                className="border border-stone-300 rounded px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-stone-400"
+                className="border border-stone-300 dark:border-stone-700 rounded px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-stone-400"
               />
             </div>
 
@@ -255,18 +255,18 @@ export default function DashboardPage({ category }) {
                   (isStudyCategory && !(board === OTHER ? boardCustom.trim() : board)) ||
                   (mathsNeedsComponent && components.length === 0)
                 }
-                className="px-3 py-1.5 bg-stone-800 text-white rounded text-sm disabled:bg-stone-300 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-stone-800 dark:bg-stone-700 text-white rounded text-sm disabled:bg-stone-300 disabled:cursor-not-allowed"
               >
                 Add goal
               </button>
-              <button onClick={resetForm} className="px-3 py-1.5 text-stone-600 text-sm rounded">Cancel</button>
+              <button onClick={resetForm} className="px-3 py-1.5 text-stone-600 dark:text-stone-400 text-sm rounded">Cancel</button>
             </div>
           </div>
         </div>
       )}
 
       {sortedSubjects.length === 0 && !(editing && showAdd) && (
-        <div className="text-center py-16 text-stone-400 font-serif">
+        <div className="text-center py-16 text-stone-400 dark:text-stone-500 font-serif">
           <BookOpen size={32} className="mx-auto mb-3 opacity-50" />
           {editing
             ? (isStudyCategory
@@ -289,13 +289,13 @@ export default function DashboardPage({ category }) {
               key={s.id}
               data-tappable
               onClick={() => navigate(paths.subject(s.id))}
-              className="group relative p-4 bg-white border-l-4 border border-stone-300 rounded-lg cursor-pointer transition-colors"
+              className="group relative p-4 bg-white dark:bg-stone-900 border-l-4 border border-stone-300 dark:border-stone-700 rounded-lg cursor-pointer transition-colors"
               style={{ borderLeftColor: accent }}
             >
               {editing && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setPendingDelete(s); }}
-                  className="absolute top-3 right-3 p-1 text-stone-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-3 right-3 p-1 text-stone-300 dark:text-stone-600 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -304,24 +304,24 @@ export default function DashboardPage({ category }) {
                 {isStudy
                   ? <GraduationCap size={14} className="shrink-0" style={{ color: accent }} />
                   : <Target size={14} className="shrink-0" style={{ color: accent }} />}
-                <h2 className="font-serif text-lg text-stone-900 flex-1 truncate">{subjectLabel(s)}</h2>
+                <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100 flex-1 truncate">{subjectLabel(s)}</h2>
                 {code && (
-                  <span className="shrink-0 font-mono text-[10px] text-stone-400 border border-stone-300 rounded px-1 py-0.5">
+                  <span className="shrink-0 font-mono text-[10px] text-stone-400 dark:text-stone-500 border border-stone-300 dark:border-stone-700 rounded px-1 py-0.5">
                     {code}
                   </span>
                 )}
-                <span className="shrink-0 font-mono text-xs text-stone-500">
+                <span className="shrink-0 font-mono text-xs text-stone-500 dark:text-stone-400">
                   {s.topics.length} {isStudy ? 'topic' : 'goal'}{s.topics.length !== 1 ? 's' : ''}
                 </span>
               </div>
-              {s.spec && <p className="text-xs text-stone-500 mt-0.5 ml-5">{s.spec}</p>}
+              {s.spec && <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 ml-5">{s.spec}</p>}
               {(s.target || s.deadline) && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 ml-5 text-xs text-stone-500">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 ml-5 text-xs text-stone-500 dark:text-stone-400">
                   {s.target && <span>Target: {s.target}</span>}
                   {s.deadline && (() => {
                     const d = daysUntil(s.deadline);
                     return (
-                      <span className={d < 0 ? 'text-rose-600' : d <= 7 ? 'text-amber-700' : ''}>
+                      <span className={d < 0 ? 'text-rose-600 dark:text-rose-400' : d <= 7 ? 'text-amber-700 dark:text-amber-400' : ''}>
                         {d < 0 ? `${Math.abs(d)} days overdue` : d === 0 ? 'Due today' : `${d} days left`}
                       </span>
                     );
@@ -329,13 +329,13 @@ export default function DashboardPage({ category }) {
                 </div>
               )}
               <div className="mt-3 flex items-center gap-3">
-                <div className="flex-1 h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${progress}%`, backgroundColor: progressColor(progress, accent) }}
                   />
                 </div>
-                <span className="font-mono text-xs text-stone-600 w-10 text-right">{progress}%</span>
+                <span className="font-mono text-xs text-stone-600 dark:text-stone-400 w-10 text-right">{progress}%</span>
               </div>
               {s.topics.length > 0 && (
                 <div className={`mt-3 inline-block px-2 py-0.5 border rounded text-[10px] font-mono tracking-wider ${masteryLevel.color}`}>
