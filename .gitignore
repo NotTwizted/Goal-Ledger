@@ -25,3 +25,7 @@ dist-ssr
 
 # A real exam paper, generated locally by "npm run fixture"
 tests/fixtures.mjs
+
+# Claude Code local settings — machine-specific, not project source
+permisions/
+.claude/
