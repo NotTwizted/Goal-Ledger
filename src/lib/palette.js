@@ -1,28 +1,31 @@
 // Each subject owns a hue, and everything belonging to it — its card, its
 // progress bars, its papers, its topic cards — is drawn in that hue.
 //
-// Deep tones only, and nothing from the purple-to-rose arc. Brightness was
-// what made earlier sets look childish and pinks what made them look twee,
-// so the palette is bounded by lightness and by hue rather than by taste:
-// nothing lighter than 0.55, nothing more saturated than 0.14, and the
-// 282-8 degree arc excluded outright.
+// Ordinary colours, named the way anybody would name them: red, green, cyan,
+// blue, violet, magenta. Deep steps rather than bright ones, so a page of them
+// reads as a document and not as a toy — every hue sits between 0.44 and 0.54
+// in oklab lightness.
 //
-// The header's two buttons keep the indigo and amber they have always had,
-// and these are chosen around them — every pair at least 13 apart, none
-// within 14 of a header button, against the 12.1 of the orange that used to
-// collide with Goals.
+// Two are missing from the rainbow and cannot be had: orange and yellow both
+// collide with the amber on the Goals button, which is why an earlier set
+// reached for olive and bronze to fill the gap and ended up looking like
+// neither one thing nor the other.
 //
-// Seven slots. The binding constraint is not taste but the header: indigo
-// and amber sit in the blue-violet and orange sectors, so navy, royal blue,
-// red, rust and aubergine are all unusable, whatever they look like.
+// The bar is measured, not judged by eye: at least 12 apart from each other in
+// oklab, and at least 9 clear of the header's indigo and amber. The closest
+// pair here is 12.7. An earlier rule demanded 14 from the header, and that one
+// number is what ruled out red, blue and violet and forced the odd hues — a
+// subject card and a header button are never read against each other, so the
+// separation only has to be enough to tell them apart, not to keep them in
+// different worlds.
 const SUBJECT_ACCENTS = [
-  '#8d2841', // wine
-  '#007f84', // teal
-  '#6d7700', // olive
-  '#6163bb', // slate indigo
-  '#115800', // dark green
-  '#583408', // bronze
-  '#004655', // deep petrol
+  '#b91c1c', // red
+  '#15803d', // green
+  '#0e7490', // cyan
+  '#1d4ed8', // blue
+  '#7c3aed', // violet
+  '#a21caf', // magenta
+  '#57534e', // stone — the seventh, where the rainbow runs out
 ];
 
 const CATEGORY_ACCENTS = {
