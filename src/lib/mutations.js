@@ -153,6 +153,45 @@ export function addTopic(subjects, subjectId, name, paper) {
   }));
 }
 
+// Ticking off a whole paper at once, for somebody who has worked through the
+// material and does not want to click forty circles to say so.
+//
+// It only ever moves a unit forward. Anything already covered stays where it
+// is, anything mastered stays mastered, and anything carrying marks is left
+// alone entirely — its circle is set by those marks, and a bulk tick has no
+// business overruling them. So pressing it twice does nothing the second time.
+const coverUnit = (unit) => {
+  if (unit.status !== 'not-started') return unit;
+  if (unitScores(unit).length > 0) return unit;
+  return { ...unit, status: 'in-progress', coveredAt: new Date().toISOString(), coveredByMarks: false };
+};
+
+// How many circles this would actually turn, so the confirmation can say.
+export function coverableCount(topics) {
+  return (topics || []).reduce((count, topic) => {
+    const subtopics = topic.subtopics || [];
+    if (!subtopics.length) return count + (coverUnit(topic) === topic ? 0 : 1);
+    return count + subtopics.filter(st => coverUnit(st) !== st).length;
+  }, 0);
+}
+
+export function coverAllTopics(subjects, subjectId, paper) {
+  return mapSubject(subjects, subjectId, s => ({
+    ...s,
+    topics: s.topics.map(topic => {
+      if (paper && (topic.paper || 'Paper 1') !== paper) return topic;
+
+      const subtopics = topic.subtopics || [];
+      // A topic with parts is covered by covering them; its own circle is not
+      // even shown, and its stamp is worked out from what is underneath.
+      if (!subtopics.length) return coverUnit(topic);
+
+      const covered = subtopics.map(coverUnit);
+      return covered.some((st, i) => st !== subtopics[i]) ? { ...topic, subtopics: covered } : topic;
+    }),
+  }));
+}
+
 export function deleteTopic(subjects, subjectId, topicId) {
   return mapSubject(subjects, subjectId, s => ({
     ...s,

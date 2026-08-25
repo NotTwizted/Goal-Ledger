@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ChevronRight, Loader2, Upload, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, CircleDot, Loader2, Upload, X } from 'lucide-react';
 import { computeProgress } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
@@ -18,6 +18,7 @@ export default function PaperPage({ subject, paper }) {
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [pendingTopic, setPendingTopic] = useState(null);
+  const [coveringAll, setCoveringAll] = useState(false);
 
   const paperTopics = (subject.topics || []).filter(t => (t.paper || 'Paper 1') === paper);
   const progress = computeProgress(paperTopics);
@@ -28,6 +29,9 @@ export default function PaperPage({ subject, paper }) {
   const selected = paperTopics.find(t => t.id === selectedId) || paperTopics[0];
 
   const topicPercent = (t) => computeProgress([t]);
+
+  // Only offered when it would do something, and it says how much.
+  const toCover = mutate.coverableCount(paperTopics);
 
   // Files are read one at a time rather than all at once — a dozen papers
   // fired off together would be rate limited — and everything that succeeded
@@ -102,6 +106,17 @@ export default function PaperPage({ subject, paper }) {
           </span>
           <ChevronRight size={16} className="text-stone-400 dark:text-stone-500" />
         </button>
+        {editing && toCover > 0 && (
+          <button
+            onClick={() => setCoveringAll(true)}
+            title="Tick off everything on this paper as covered"
+            className="shrink-0 flex items-center gap-1.5 text-sm rounded-lg px-4 py-3 font-medium border border-amber-500 dark:border-amber-600 text-amber-700 dark:text-amber-400"
+          >
+            <CircleDot size={16} />
+            <span className="hidden sm:inline">Mark all covered</span>
+            <span className="font-mono text-[10px]">{toCover}</span>
+          </button>
+        )}
         {editing && (
           <label
             data-tappable
@@ -189,6 +204,20 @@ export default function PaperPage({ subject, paper }) {
             />
           )}
         </div>
+      )}
+
+      {coveringAll && (
+        <ConfirmDialog
+          title={`Mark ${toCover} ${toCover === 1 ? 'subtopic' : 'subtopics'} as covered?`}
+          body={`Everything under ${paper} that has not been started turns amber. Anything already covered, already mastered, or carrying marks from a paper is left as it is — and undoing this means clicking each one back yourself.`}
+          confirmLabel="Mark them covered"
+          tone="neutral"
+          onConfirm={() => {
+            updateSubjects(mutate.coverAllTopics(subjects, subject.id, paper));
+            setCoveringAll(false);
+          }}
+          onCancel={() => setCoveringAll(false)}
+        />
       )}
 
       {pendingTopic && (
