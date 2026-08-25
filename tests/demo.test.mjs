@@ -1,88 +1,66 @@
-// The demo ledger is built by running the same mutations a real user would,
-// so these checks are really asking whether that path still works end to end.
-import { buildDemoLedger } from '../src/lib/demo.js';
-import { computeProgress, unitScores, averageScore } from '../src/lib/helpers.js';
+// Using the app without an account.
+//
+// It is not a cut-down version and not a tour: the same ledger and the same
+// pages, starting empty the way a new account does. The only difference is
+// that nothing is written down — so these checks are about what must *not*
+// happen, which is the half that rots quietly if nobody watches it.
+import { readFileSync } from 'node:fs';
+import { setEphemeralPapers, savePaperFile, getPaperFile, deletePaperFile } from '../src/lib/paperfiles.js';
 
 const check = (label, ok, detail = '') =>
   console.log(`${ok ? ' ok ' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
 
-const subjects = buildDemoLedger();
-const maths = subjects.find(s => s.name === 'Maths');
-const physics = subjects.find(s => s.name === 'Physics');
-const fitness = subjects.find(s => s.name === 'Fitness');
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const appSrc = read('../src/App.jsx');
+const paperSrc = read('../src/pages/PaperPage.jsx');
+const filesSrc = read('../src/lib/paperfiles.js');
 
-check('it has something to look at', subjects.length === 3, subjects.map(s => s.name).join(', '));
-check('every subject has its own colour',
-  new Set(subjects.map(s => s.accent)).size === subjects.length,
-  subjects.map(s => s.accent).join(' '));
+// ── It starts with nothing, like a new account ───────────────────────────
+check('a session without an account starts empty',
+  /setSubjects\(\[\]\);\s*\n\s*setLoaded\(true\);/.test(appSrc));
+check('and nothing seeds it with example data',
+  !/buildDemoLedger|loadDemoLedger|saveDemoLedger/.test(appSrc));
 
-check('maths has its standard topics', (maths?.topics || []).length >= 15, `${maths?.topics.length}`);
-check('and a paper on record', (maths?.pastPapers || []).length === 1);
-check('the paper is dated, so the week can find it', Boolean(maths.pastPapers[0].uploadedAt));
-
-const marked = maths.topics.filter(t => unitScores(t).length > 0);
-check('the paper moved mastery on the topics it tested', marked.length >= 6,
-  marked.map(t => `${t.name} ${averageScore(t)}%`).join(', '));
-
-const quadratics = maths.topics.find(t => t.name === 'Quadratics');
-const completing = (quadratics?.subtopics || []).find(st => /Completing/.test(st.name));
-check('a subtopic answered perfectly is green', completing?.status === 'done',
-  `${completing?.name}: ${completing?.status}`);
-
-const trig = maths.topics.find(t => t.name === 'Trigonometric ratios');
-const triangles = (trig?.subtopics || []).find(st => st.name === 'Solving triangle problems');
-check('one answered badly is amber, not green', triangles?.status === 'in-progress',
-  `${triangles?.name}: ${triangles?.status} at ${averageScore(triangles)}%`);
-
-check('untested topics are untouched',
-  maths.topics.some(t => unitScores(t).length === 0 && t.status === 'not-started'));
-
-check('physics has topics ticked off by hand',
-  (physics?.topics || []).some(t => (t.subtopics || []).some(st => st.status === 'in-progress')));
-
-check('there are goals as well as subjects', (fitness?.topics || []).length === 2,
-  (fitness?.topics || []).map(t => t.name).join(', '));
-const pullups = fitness?.topics?.[0];
-check('and one of them is part done', Number(pullups?.current) === 6, String(pullups?.current));
-check('which reads as 6 of the 10 in its name',
-  computeProgress([pullups]) === 60, `${computeProgress([pullups])}%`);
-
-check('maths shows real progress, not none and not all',
-  computeProgress(maths.topics) > 0 && computeProgress(maths.topics) < 100,
-  `${computeProgress(maths.topics)}%`);
-
-// Building it twice must not produce colliding ids, or React keys break.
-const second = buildDemoLedger();
-check('two builds do not share ids',
-  subjects[0].id !== second[0].id && subjects[0].topics[0].id !== second[0].topics[0].id);
-
-// One time use: nothing about the demo may be written down, or a refresh
-// would not be the end of it.
-import { readFileSync } from 'node:fs';
-
-const demoSrc = readFileSync(new URL('../src/lib/demo.js', import.meta.url), 'utf8');
-const appSrc = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
-const paperSrc = readFileSync(new URL('../src/pages/PaperPage.jsx', import.meta.url), 'utf8');
-
-check('the demo never writes to storage',
-  !/localStorage\.setItem/.test(demoSrc), 'demo.js writes something');
-check('it only clears what an older version left',
-  (demoSrc.match(/localStorage\.\w+/g) || []).join(',') === 'localStorage.removeItem',
-  (demoSrc.match(/localStorage\.\w+/g) || []).join(','));
-check('saving does nothing at all while in the demo',
-  /if \(demo\) return;/.test(appSrc));
+// ── Saving reaches nothing ───────────────────────────────────────────────
 // Inside the one function that writes, specifically — the table is named
 // earlier in the file by the code that reads it, so position alone proves
 // nothing.
 const persist = appSrc.slice(appSrc.indexOf('const persist = useCallback'),
-                            appSrc.indexOf('const updateSubjects'));
+                             appSrc.indexOf('const updateSubjects'));
 check('the guard sits inside persist, before the upsert',
   persist.indexOf('if (demo) return;') !== -1
     && persist.indexOf('if (demo) return;') < persist.indexOf('upsert'),
   `guard at ${persist.indexOf('if (demo) return;')}, upsert at ${persist.indexOf('upsert')}`);
-check('an uploaded paper leaves no file behind either',
-  /if \(!demo\) await savePaperFile/.test(paperSrc));
-check('entering the demo builds it fresh rather than loading one',
-  /clearStoredDemo\(\);\s*\n\s*setSubjects\(buildDemoLedger\(\)\);/.test(appSrc));
-check('nothing still imports the old save and load',
-  !/saveDemoLedger|loadDemoLedger/.test(appSrc + demoSrc));
+
+check('the old browser copy is cleared rather than left lying about',
+  /localStorage\.removeItem\('study-tracker:demo'\)/.test(appSrc));
+check('and nothing writes a new one',
+  !/setItem\('study-tracker:demo'/.test(appSrc));
+
+// ── A paper uploaded in it works, and outlives nothing ───────────────────
+check('uploading is not skipped — it works here like anywhere',
+  /await savePaperFile\(record\.id, files\[i\], userId\);/.test(paperSrc));
+check('the session store is switched on and off with the mode',
+  /setEphemeralPapers\(demo\);/.test(appSrc));
+check('turning it off empties it',
+  /if \(!on\) memory\.clear\(\);/.test(filesSrc));
+
+const file = new File([new Uint8Array([1, 2, 3])], 'paper.pdf', { type: 'application/pdf' });
+
+setEphemeralPapers(true);
+check('a paper saved without an account comes back',
+  (await savePaperFile('p1', file, null)) === true && (await getPaperFile('p1', null)) === file);
+check('and deleting it removes it', await (async () => {
+  await deletePaperFile('p1', null);
+  return (await getPaperFile('p1', null)) === null;
+})());
+
+await savePaperFile('p2', file, null);
+setEphemeralPapers(false);
+check('leaving the session takes its papers with it',
+  await (async () => {
+    setEphemeralPapers(true);
+    const gone = (await getPaperFile('p2', null)) === null;
+    setEphemeralPapers(false);
+    return gone;
+  })());

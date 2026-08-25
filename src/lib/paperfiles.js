@@ -18,6 +18,18 @@ const remotePath = (userId, id) => `${userId}/${id}.pdf`;
 const DB_NAME = 'goal-ledger-papers';
 const STORE = 'files';
 
+// A signed-out session works exactly like a signed-in one and leaves exactly
+// nothing behind, so its papers are held in a plain Map instead of the
+// database. Uploading, reading a question, seeing the page it was printed on —
+// all of it works until the tab closes, and then there is nothing to clean up.
+let ephemeral = false;
+const memory = new Map();
+
+export function setEphemeralPapers(on) {
+  ephemeral = Boolean(on);
+  if (!on) memory.clear();
+}
+
 // Enough for a term's papers. Past this the oldest goes, since the marks —
 // which are what matter — are on the account either way.
 const KEEP = 25;
@@ -79,6 +91,10 @@ const getLocal = (id) => run('readonly', store => store.get(id))
 // paper is already readable on this device, and a slow line should not hold up
 // the page that is about to open.
 export async function savePaperFile(id, file, userId) {
+  if (ephemeral) {
+    memory.set(id, file);
+    return true;
+  }
   const saved = await putLocal(id, file);
   if (userId && isSupabaseConfigured) {
     supabase.storage.from(BUCKET)
@@ -89,6 +105,7 @@ export async function savePaperFile(id, file, userId) {
 }
 
 export async function getPaperFile(id, userId) {
+  if (ephemeral) return memory.get(id) || null;
   const local = await getLocal(id);
   if (local) return local;
   if (!userId || !isSupabaseConfigured) return null;
@@ -106,6 +123,10 @@ export async function getPaperFile(id, userId) {
 }
 
 export async function deletePaperFile(id, userId) {
+  if (ephemeral) {
+    memory.delete(id);
+    return;
+  }
   try {
     await run('readwrite', store => store.delete(id));
   } catch (e) {

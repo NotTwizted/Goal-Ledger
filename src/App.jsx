@@ -28,7 +28,7 @@ import { accentWash, assignMissingAccents, categoryAccent, subjectAccent } from 
 import { syncStatusWithMarks } from './lib/mutations';
 import { parseLedger, serialiseLedger } from './lib/ledgerdata';
 import { getApiKey, setApiKey } from './lib/apikey';
-import { buildDemoLedger, clearStoredDemo } from './lib/demo';
+import { setEphemeralPapers } from './lib/paperfiles';
 import HeaderMenu from './components/HeaderMenu';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -61,9 +61,13 @@ export default function StudyTracker() {
   const [authError, setAuthError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
 
-  // Looking around without an account. Everything works; nothing leaves this
-  // browser. Kept out of the auth flow entirely rather than signing in as a
-  // shared demo user, which would have every visitor editing one another's row.
+  // Using the app without an account. Not a cut-down version and not a tour:
+  // the same ledger, the same pages, the same everything — starting empty, the
+  // way a new account does. The only difference is where it is kept, which is
+  // nowhere. Closing the tab is the end of it.
+  //
+  // Kept out of the auth flow entirely rather than signing in as a shared demo
+  // user, which would have every visitor editing one another's row.
   const [demo, setDemo] = useState(false);
 
   const [subjects, setSubjects] = useState([]);
@@ -127,9 +131,18 @@ export default function StudyTracker() {
   }, []);
 
   useEffect(() => {
+    setEphemeralPapers(demo);
     if (!demo) return;
-    clearStoredDemo();
-    setSubjects(buildDemoLedger());
+
+    // An earlier version of this kept its ledger in the browser. Anyone who
+    // tried it then still has that lying about, so it goes now.
+    try {
+      localStorage.removeItem('study-tracker:demo');
+    } catch (e) {
+      // No storage to clear.
+    }
+
+    setSubjects([]);
     setLoaded(true);
   }, [demo]);
 
@@ -531,11 +544,11 @@ export default function StudyTracker() {
               onClick={() => setDemo(true)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm rounded-lg border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300"
             >
-              <Eye size={16} /> Look around first
+              <Eye size={16} /> Try it without an account
             </button>
             <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2 text-center leading-relaxed">
-              A worked example with a marked paper already read. Everything works, nothing is sent
-              anywhere, and a refresh clears it — so there is nothing to undo afterwards.
+              The whole app, starting empty, kept only while this tab is open. Add subjects, load the
+              standard topics, upload a paper — all of it works, and a refresh clears the lot.
             </p>
           </div>
         </div>
@@ -715,8 +728,8 @@ export default function StudyTracker() {
           <div className="mx-6 mt-4 px-3 py-2.5 flex items-center gap-2 flex-wrap border border-stone-300 dark:border-stone-700 rounded-lg">
             <Eye size={15} className="shrink-0 text-stone-500 dark:text-stone-400" />
             <p className="flex-1 min-w-0 text-sm text-stone-700 dark:text-stone-300">
-              A worked example, kept only while this tab is open.
-              <span className="text-stone-500 dark:text-stone-400"> Refreshing clears everything you do here.</span>
+              Using the app without an account.
+              <span className="text-stone-500 dark:text-stone-400"> Nothing is saved — refreshing clears everything, so sign in when you want to keep it.</span>
             </p>
             <button
               onClick={() => { setDemo(false); setLoaded(false); setSubjects([]); navigate(paths.home(), { immediate: true }); }}
@@ -725,11 +738,11 @@ export default function StudyTracker() {
               Sign in
             </button>
             <button
-              onClick={() => { setSubjects(buildDemoLedger()); navigate(paths.home(), { immediate: true }); }}
-              title="Put the example back the way it started"
+              onClick={() => { setSubjects([]); navigate(paths.home(), { immediate: true }); }}
+              title="Empty it and start over"
               className="shrink-0 px-3 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-400"
             >
-              Start again
+              Clear
             </button>
           </div>
         )}
