@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronRight, ClipboardList, FileText, Image as ImageIcon, Loader2, Plus } from 'lucide-react';
+import { CheckCircle2, ChevronRight, CircleDot, ClipboardList, FileText, Image as ImageIcon, Loader2, Plus } from 'lucide-react';
 import {
   computeProgress,
   daysUntil,
@@ -14,6 +14,7 @@ import { navigate, paths } from '../lib/router';
 import { goalImportPlaceholder, goalPlaceholder } from '../lib/goals';
 import { paperShade, progressColor, subjectAccent } from '../lib/palette';
 import GoalRow from '../components/GoalRow';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function SubjectPage({ subject }) {
   const { subjects, updateSubjects, editing } = useLedger();
@@ -27,6 +28,7 @@ export default function SubjectPage({ subject }) {
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState('');
   const [justLoadedTopics, setJustLoadedTopics] = useState(false);
+  const [coveringAll, setCoveringAll] = useState(false);
   const flashTimer = useRef(null);
 
   useEffect(() => () => clearTimeout(flashTimer.current), []);
@@ -43,6 +45,8 @@ export default function SubjectPage({ subject }) {
   const code = isStudy ? getPaperCode(subject.level, subject.name, subject.board) : null;
   const specUrl = isStudy ? getSpecUrl(subject.level, subject.name, subject.board) : null;
   const papersInUse = [...new Set((subject.topics || []).map(t => t.paper || 'Paper 1'))];
+  // Only offered when it would do something, and it says how much.
+  const coverableHere = mutate.coverableCount(subject.topics);
 
   const addGoal = () => {
     const name = goalName.trim();
@@ -130,6 +134,22 @@ export default function SubjectPage({ subject }) {
           />
         </div>
       </div>
+
+      {editing && isStudy && coverableHere > 0 && (
+        <div className="mb-5">
+          <button
+            onClick={() => setCoveringAll(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-stone-300 dark:border-stone-700 rounded-lg text-sm font-medium text-stone-600 dark:text-stone-400"
+          >
+            <CircleDot size={16} /> Mark all covered
+            <span className="font-mono text-[10px] text-stone-400 dark:text-stone-500">{coverableHere}</span>
+          </button>
+          <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1.5 text-center">
+            Turns everything in {subject.name} amber, across every paper. Anything already covered,
+            already mastered, or carrying marks from a paper is left as it is.
+          </p>
+        </div>
+      )}
 
       {editing && seed && (
         <div className="mb-5">
@@ -303,6 +323,20 @@ export default function SubjectPage({ subject }) {
         <div className="flex flex-col gap-2">
           {(subject.topics || []).map(t => <GoalRow key={t.id} subject={subject} topic={t} />)}
         </div>
+      )}
+
+      {coveringAll && (
+        <ConfirmDialog
+          title={`Mark ${coverableHere} ${coverableHere === 1 ? 'subtopic' : 'subtopics'} as covered?`}
+          body={`Everything in ${subject.name} that has not been started turns amber, across every paper. Anything already covered, already mastered, or carrying marks from a paper is left as it is — and undoing this means clicking each one back yourself.`}
+          confirmLabel="Mark them covered"
+          tone="neutral"
+          onConfirm={() => {
+            updateSubjects(mutate.coverAllTopics(subjects, subject.id, null));
+            setCoveringAll(false);
+          }}
+          onCancel={() => setCoveringAll(false)}
+        />
       )}
     </div>
   );

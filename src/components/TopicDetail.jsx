@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
+import { CircleDot, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
 import { MASTERY_THRESHOLD, STATUS_META, averageScore, formatDateTime, isMastered, unitScores } from '../lib/helpers';
 import { useLedger } from '../lib/ledger';
 import * as mutate from '../lib/mutations';
@@ -16,10 +16,13 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
   const [testError, setTestError] = useState('');
   const [pendingSubtopic, setPendingSubtopic] = useState(null);
   const [openScores, setOpenScores] = useState(null);
+  const [coveringAll, setCoveringAll] = useState(false);
 
   const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
   const StatusIcon = STATUS_META[topic.status].icon;
   const latestTest = (topic.unitTests || [])[(topic.unitTests || []).length - 1];
+  // Only offered when it would do something, and it says how much.
+  const coverableHere = mutate.coverableCount([topic]);
 
   const submitSubtopic = () => {
     updateSubjects(mutate.addSubtopic(subjects, subject.id, topic.id, draft));
@@ -161,6 +164,15 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
         </div>
       )}
 
+      {editing && hasSubtopics && coverableHere > 0 && (
+        <button
+          onClick={() => setCoveringAll(true)}
+          className="w-full flex items-center justify-center gap-2 mt-3 py-1.5 border border-stone-300 dark:border-stone-700 rounded text-xs text-stone-600 dark:text-stone-400"
+        >
+          <CircleDot size={13} /> Mark all {coverableHere} covered
+        </button>
+      )}
+
       {editing && hasSubtopics && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 dark:border-stone-800">
           <label data-tappable className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 cursor-pointer">
@@ -222,6 +234,20 @@ export default function TopicDetail({ subject, topic, accent, percent }) {
           </div>
         );
       })()}
+
+      {coveringAll && (
+        <ConfirmDialog
+          title={`Mark ${coverableHere} ${coverableHere === 1 ? 'subtopic' : 'subtopics'} as covered?`}
+          body={`Everything under ${topic.name} that has not been started turns amber. Anything already covered, already mastered, or carrying marks is left as it is — and undoing this means clicking each one back yourself.`}
+          confirmLabel="Mark them covered"
+          tone="neutral"
+          onConfirm={() => {
+            updateSubjects(mutate.coverTopicSubtopics(subjects, subject.id, topic.id));
+            setCoveringAll(false);
+          }}
+          onCancel={() => setCoveringAll(false)}
+        />
+      )}
 
       {pendingSubtopic && (
         <ConfirmDialog

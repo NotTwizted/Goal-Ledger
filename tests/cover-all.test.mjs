@@ -66,3 +66,29 @@ check('with no paper named it covers every one',
 check('a subject that is not there is left alone',
   mutate.coverAllTopics(ledger(), 'nope', 'Paper 1')[0].topics[0].subtopics[0].status === 'not-started');
 check('marks are never added by it', unitScores(square).length === 0);
+
+// The same thing at three scales: one topic, one paper, the whole subject.
+const scoped = mutate.coverTopicSubtopics(ledger(), 's1', 't1');
+check('one topic covers only its own subtopics',
+  scoped[0].topics[0].subtopics[0].status === 'in-progress'
+    && scoped[0].topics[1].status === 'not-started'
+    && scoped[0].topics[2].subtopics[0].status === 'not-started',
+  `Quadratics ${scoped[0].topics[0].subtopics[0].status}, Radians ${scoped[0].topics[1].status}`);
+check('and leaves its mastered and marked ones alone',
+  scoped[0].topics[0].subtopics[2].status === 'done'
+    && scoped[0].topics[0].subtopics[3].status === 'not-started');
+check('a topic that is not there changes nothing',
+  mutate.coverTopicSubtopics(ledger(), 's1', 'nope')[0].topics[0].subtopics[0].status === 'not-started');
+
+// A topic with no subtopics is covered by covering the topic itself.
+const plain = mutate.coverTopicSubtopics(ledger(), 's1', 't2');
+check('a topic with no subtopics covers itself', plain[0].topics[1].status === 'in-progress',
+  plain[0].topics[1].status);
+
+// Counting one topic, for the label on its own button.
+check('counting a single topic counts only its own',
+  mutate.coverableCount([ledger()[0].topics[0]]) === 1,
+  String(mutate.coverableCount([ledger()[0].topics[0]])));
+check('and a whole subject counts every paper',
+  mutate.coverableCount(ledger()[0].topics) === 3,
+  String(mutate.coverableCount(ledger()[0].topics)));

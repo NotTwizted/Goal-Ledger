@@ -175,21 +175,28 @@ export function coverableCount(topics) {
   }, 0);
 }
 
+const coverTopic = (topic) => {
+  const subtopics = topic.subtopics || [];
+  // A topic with parts is covered by covering them; its own circle is not even
+  // shown, and its stamp is worked out from what is underneath.
+  if (!subtopics.length) return coverUnit(topic);
+
+  const covered = subtopics.map(coverUnit);
+  return covered.some((st, i) => st !== subtopics[i]) ? { ...topic, subtopics: covered } : topic;
+};
+
+// A whole paper, or the whole subject when no paper is named.
 export function coverAllTopics(subjects, subjectId, paper) {
   return mapSubject(subjects, subjectId, s => ({
     ...s,
-    topics: s.topics.map(topic => {
-      if (paper && (topic.paper || 'Paper 1') !== paper) return topic;
-
-      const subtopics = topic.subtopics || [];
-      // A topic with parts is covered by covering them; its own circle is not
-      // even shown, and its stamp is worked out from what is underneath.
-      if (!subtopics.length) return coverUnit(topic);
-
-      const covered = subtopics.map(coverUnit);
-      return covered.some((st, i) => st !== subtopics[i]) ? { ...topic, subtopics: covered } : topic;
-    }),
+    topics: s.topics.map(topic =>
+      (paper && (topic.paper || 'Paper 1') !== paper ? topic : coverTopic(topic))),
   }));
+}
+
+// Or just the one topic that is open.
+export function coverTopicSubtopics(subjects, subjectId, topicId) {
+  return mapSubject(subjects, subjectId, s => mapTopic(s, topicId, coverTopic));
 }
 
 export function deleteTopic(subjects, subjectId, topicId) {
