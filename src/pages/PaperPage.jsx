@@ -110,11 +110,11 @@ export default function PaperPage({ subject, paper }) {
           <button
             onClick={() => setCoveringAll(true)}
             title="Tick off everything on this paper as covered"
-            className="shrink-0 flex items-center gap-1.5 text-sm rounded-lg px-4 py-3 font-medium border border-amber-500 dark:border-amber-600 text-amber-700 dark:text-amber-400"
+            className="shrink-0 flex items-center gap-1.5 text-sm rounded-lg px-4 py-3 font-medium border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300"
           >
             <CircleDot size={16} />
             <span className="hidden sm:inline">Mark all covered</span>
-            <span className="font-mono text-[10px]">{toCover}</span>
+            <span className="font-mono text-[10px] text-stone-400 dark:text-stone-500">{toCover}</span>
           </button>
         )}
         {editing && (
